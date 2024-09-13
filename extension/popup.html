@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+        label {
+            margin: 5px 0;
+            display: block;
+        }
+        select, input[type="checkbox"] {
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<h3>Video Download Settings</h3>
+
+<label>
+    <input type="checkbox" id="bestQualityCheckbox" checked> Download in Best Quality
+</label>
+
+<label for="qualitySelect">Select Video Quality:</label>
+<select id="qualitySelect" disabled>
+    <option value="2160p">2160p (4K)</option>
+    <option value="1440p">1440p (2K)</option>
+    <option value="1080p">1080p (Full HD)</option>
+    <option value="720p">720p (HD)</option>
+    <option value="480p">480p (SD)</option>
+    <option value="360p">360p (SD)</option>
+    <option value="240p">240p</option>
+    <option value="144p">144p</option>
+</select>
+
+<button id="saveSettings">Save</button>
+
+<script src="popup.js"></script>
+</body>
+</html>
