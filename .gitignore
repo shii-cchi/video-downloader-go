@@ -1,2 +1,3 @@
 .idea
 video-downloader-server/.env
+video-downloader-server/videos

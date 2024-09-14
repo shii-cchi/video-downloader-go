@@ -47,88 +47,30 @@ func (v *VideoService) downloadYouTubeVideo(videoURL string, quality string) err
 	}
 
 	client := youtube.Client{}
-
 	video, err := client.GetVideo(videoID)
 	if err != nil {
 		return fmt.Errorf(errFetchingMetadata+": %s", err)
 	}
 
-	videoFormats := video.Formats.Type("video")
-	audioFormats := video.Formats.Type("audio")
-
-	var selectedVideoFormat *youtube.Format
-	switch quality {
-	case "best":
-		selectedVideoFormat = &videoFormats[0]
-	default:
-		for _, videoFormat := range videoFormats {
-			if videoFormat.QualityLabel == quality {
-				selectedVideoFormat = &videoFormat
-				break
-			}
-			selectedVideoFormat = &videoFormats[0]
-		}
-	}
-
-	var selectedAudioFormat *youtube.Format
-	for _, audioFormat := range audioFormats {
-		if strings.Contains(audioFormat.MimeType, "audio/mp4") {
-			selectedAudioFormat = &audioFormat
-			break
-		}
-		selectedAudioFormat = &audioFormats[0]
-	}
-
-	videoStream, _, err := client.GetStream(video, selectedVideoFormat)
-	if err != nil {
-		return fmt.Errorf(errGettingStream+": %s", err)
-	}
-	defer videoStream.Close()
-
-	audioStream, _, err := client.GetStream(video, selectedAudioFormat)
-	if err != nil {
-		return fmt.Errorf(errGettingStream+": %s", err)
-	}
-	defer audioStream.Close()
-
 	videoTitle := v.replaceSpecialSymbols(video.Title)
 
+	selectedVideoFormat := v.selectVideoFormat(video, quality)
 	videoFileName := fmt.Sprintf("videos/%s_video_%s.mp4", videoTitle, selectedVideoFormat.QualityLabel)
-	videoFile, err := os.Create(videoFileName)
-	if err != nil {
-		return fmt.Errorf(errCreatingFile+": %s", err)
+	if err := v.downloadStreamToFile(client, video, selectedVideoFormat, videoFileName); err != nil {
+		return err
 	}
-	defer func() {
-		videoFile.Close()
-		os.Remove(videoFileName)
-	}()
+	defer os.Remove(videoFileName)
 
+	selectedAudioFormat := v.selectAudioFormat(video)
 	audioFileName := fmt.Sprintf("videos/%s_audio.mp4", videoTitle)
-	audioFile, err := os.Create(audioFileName)
-	if err != nil {
-		return fmt.Errorf(errCreatingFile+": %s", err)
+	if err := v.downloadStreamToFile(client, video, selectedAudioFormat, audioFileName); err != nil {
+		return err
 	}
-	defer func() {
-		audioFile.Close()
-		os.Remove(audioFileName)
-	}()
-
-	_, err = io.Copy(videoFile, videoStream)
-	if err != nil {
-		fmt.Println(err)
-		return fmt.Errorf(errFillingFile+": %s", err)
-	}
-
-	_, err = io.Copy(audioFile, audioStream)
-	if err != nil {
-		fmt.Println(err)
-		return fmt.Errorf(errFillingFile+": %s", err)
-	}
+	defer os.Remove(audioFileName)
 
 	mergedFileName := fmt.Sprintf("videos/%s %s.mp4", videoTitle, selectedVideoFormat.QualityLabel)
-	cmd := exec.Command("ffmpeg", "-i", videoFileName, "-i", audioFileName, "-c", "copy", mergedFileName)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(errMerging+": %s", err)
+	if err := v.mergeVideoAudio(videoFileName, audioFileName, mergedFileName); err != nil {
+		return err
 	}
 
 	return nil
@@ -183,4 +125,57 @@ func (v *VideoService) replaceSpecialSymbols(videoName string) string {
 	safeFileName := re.ReplaceAllString(videoName, "")
 
 	return safeFileName
+}
+
+func (v *VideoService) selectVideoFormat(video *youtube.Video, quality string) *youtube.Format {
+	videoFormats := video.Formats.Type("video")
+	for _, videoFormat := range videoFormats {
+		if quality == "best" || videoFormat.QualityLabel == quality {
+			return &videoFormat
+		}
+	}
+
+	return &videoFormats[0]
+}
+
+func (v *VideoService) selectAudioFormat(video *youtube.Video) *youtube.Format {
+	audioFormats := video.Formats.Type("audio")
+	for _, audioFormat := range audioFormats {
+		if strings.Contains(audioFormat.MimeType, "audio/mp4") {
+			return &audioFormat
+		}
+	}
+
+	return &audioFormats[0]
+}
+
+func (v *VideoService) downloadStreamToFile(client youtube.Client, video *youtube.Video, format *youtube.Format, fileName string) error {
+	stream, _, err := client.GetStream(video, format)
+	if err != nil {
+		return fmt.Errorf(errGettingStream+": %s", err)
+	}
+	defer stream.Close()
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf(errCreatingFile+": %s", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, stream)
+	if err != nil {
+		fmt.Println(err)
+		return fmt.Errorf(errFillingFile+": %s", err)
+	}
+
+	return nil
+}
+
+func (v *VideoService) mergeVideoAudio(videoFileName string, audioFileName string, mergedFileName string) error {
+	cmd := exec.Command("ffmpeg", "-i", videoFileName, "-i", audioFileName, "-c", "copy", mergedFileName)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf(errMerging+": %s", err)
+	}
+
+	return nil
 }
