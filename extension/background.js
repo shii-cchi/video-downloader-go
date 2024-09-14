@@ -29,7 +29,7 @@ function downloadVideo(videoUrl, type) {
             quality = data.selectedQuality;
         }
 
-    fetch('http://localhost:8080/videos/download', {
+    fetch('http://localhost:8080/extension/download-to-server', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ video_url: videoUrl, type: type, quality: quality}),

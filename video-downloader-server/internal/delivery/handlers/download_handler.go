@@ -9,20 +9,20 @@ import (
 	"video-downloader-server/service"
 )
 
-type videoHandler struct {
-	videoService service.Videos
+type downloadHandler struct {
+	downloadService service.Download
 }
 
-func newVideoHandler(videoService service.Videos) *videoHandler {
-	return &videoHandler{
-		videoService: videoService,
+func newDownloadHandler(downloadService service.Download) *downloadHandler {
+	return &downloadHandler{
+		downloadService: downloadService,
 	}
 }
 
-func (h videoHandler) downloadVideo(w http.ResponseWriter, r *http.Request) {
+func (h downloadHandler) downloadVideo(w http.ResponseWriter, r *http.Request) {
 	downloadInput := r.Context().Value(delivery.DownloadInputKey).(dto.DownloadInputDto)
 
-	err := h.videoService.DownloadVideo(downloadInput)
+	err := h.downloadService.DownloadVideo(downloadInput)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), delivery.ErrNotFoundVideoID) || strings.HasPrefix(err.Error(), delivery.ErrParsingURL) {
 			log.WithError(err).Error(delivery.ErrGettingID)

@@ -8,23 +8,36 @@ import (
 )
 
 type Handler struct {
-	videoHandler *videoHandler
-	validator    *validator.Validate
-	extensionURL string
+	downloadHandler        *downloadHandler
+	videoManagementHandler *videoManagementHandler
+	validator              *validator.Validate
+	extensionURL           string
 }
 
 func NewHandler(service *service.Service, v *validator.Validate, extensionURL string) *Handler {
-	vh := newVideoHandler(service.Videos)
+	dh := newDownloadHandler(service.Download)
+	vm := newVideoManagementHandler(service.VideoManagement)
 
 	return &Handler{
-		videoHandler: vh,
-		validator:    v,
-		extensionURL: extensionURL,
+		downloadHandler:        dh,
+		videoManagementHandler: vm,
+		validator:              v,
+		extensionURL:           extensionURL,
 	}
 }
 
 func (h Handler) RegisterRoutes(r *chi.Mux) {
-	r.Use(middleware.ApplyCors(h.extensionURL))
+	r.Route("/extension", func(r chi.Router) {
+		r.Use(middleware.ApplyCors(h.extensionURL))
+		r.Use(middleware.CheckDownloadInput(h.validator))
 
-	r.With(middleware.CheckDownloadInput(h.validator)).Post("/videos/download", h.videoHandler.downloadVideo)
+		r.Post("/download-to-server", h.downloadHandler.downloadVideo)
+	})
+
+	r.Route("/videos", func(r chi.Router) {
+		r.Use(middleware.CheckVideoNameInput)
+
+		r.Get("/stream", h.videoManagementHandler.streamVideo)
+		r.Get("/download-to-local", h.videoManagementHandler.downloadVideo)
+	})
 }

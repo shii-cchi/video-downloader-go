@@ -1,19 +1,31 @@
 package service
 
-import "video-downloader-server/internal/delivery/dto"
+import (
+	"video-downloader-server/internal/delivery/dto"
+)
 
-type Videos interface {
+type Download interface {
 	DownloadVideo(input dto.DownloadInputDto) error
 }
 
+type VideoManagement interface {
+	GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error)
+	//GetVideos() ([]string, error)
+	//DeleteVideo(videoName string) error
+	//DownloadVideoFile(videoName string) ([]byte, error)
+}
+
 type Service struct {
-	Videos Videos
+	Download        Download
+	VideoManagement VideoManagement
 }
 
 func NewService() *Service {
-	videoService := newVideoService()
+	downloadService := newDownloadService()
+	videoManagementService := newVideoManagementService()
 
 	return &Service{
-		Videos: videoService,
+		Download:        downloadService,
+		VideoManagement: videoManagementService,
 	}
 }
