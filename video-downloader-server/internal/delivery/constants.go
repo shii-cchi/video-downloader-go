@@ -17,16 +17,18 @@ const (
 	ErrInvalidVideoNameInput = "invalid video name input"
 	MesInvalidVideoNameInput = "video name is required"
 
-	ErrNotFoundVideoID  = "videoID not found in url"
-	ErrParsingURL       = "failed to parse VideoURL"
-	ErrGettingID        = "error getting videoID from VideoURL"
-	ErrDownloadingVideo = "error downloading video"
-	SuccessfulLoad      = "successful video load"
+	ErrNotFoundVideoID          = "videoID not found in url"
+	ErrParsingURL               = "failed to parse VideoURL"
+	ErrGettingID                = "error getting videoID from VideoURL"
+	ErrDownloadingVideoToServer = "error downloading video to server"
+	SuccessfulLoad              = "successful video load"
 
 	ErrMarshalingJSON = "failed to marshal JSON response"
 
 	ErrGettingVideoRange  = "error getting video range info"
 	ErrVideoNotFound      = "video not found"
-	ErrGettingFileInfo    = "err getting file info"
 	ErrInvalidRangeHeader = "invalid range header"
+
+	ErrGettingVideo               = "error getting video"
+	ErrDownloadingVideoFromServer = "error downloading video from server"
 )

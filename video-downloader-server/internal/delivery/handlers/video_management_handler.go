@@ -39,9 +39,23 @@ func (h videoManagementHandler) streamVideo(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	delivery.RespondWithVideo(w, videoRangeInfo)
+	delivery.RespondWithVideoRange(w, videoRangeInfo)
 }
 
 func (h videoManagementHandler) downloadVideo(w http.ResponseWriter, r *http.Request) {
+	videoName := r.Context().Value(delivery.VideoNameInputKey).(string)
 
+	videoInfo, err := h.videoManagementService.GetVideoToDownload(videoName)
+	if err != nil {
+		log.WithError(err).Error(delivery.ErrGettingVideo)
+		if strings.HasPrefix(err.Error(), delivery.ErrVideoNotFound) {
+			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrVideoNotFound})
+			return
+		}
+
+		delivery.RespondWithJSON(w, http.StatusInternalServerError, delivery.JsonError{Error: delivery.ErrGettingVideo})
+		return
+	}
+
+	delivery.RespondWithVideo(w, videoInfo)
 }

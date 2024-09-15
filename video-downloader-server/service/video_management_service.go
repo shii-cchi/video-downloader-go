@@ -29,8 +29,13 @@ func newVideoManagementService() *VideoManagementService {
 type VideoRangeInfo struct {
 	RangeStart int64
 	RangeEnd   int64
-	FileSize   int64
-	VideoFile  *os.File
+	VideoInfo  VideoInfo
+}
+
+type VideoInfo struct {
+	VideoName string
+	FileSize  int64
+	VideoFile *os.File
 }
 
 func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error) {
@@ -39,12 +44,12 @@ func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader stri
 		return VideoRangeInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
 	}
 
-	fileStat, err := videoFile.Stat()
+	fileInfo, err := videoFile.Stat()
 	if err != nil {
 		return VideoRangeInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
 	}
 
-	rangeStart, rangeEnd, err := s.parseRangeHeader(rangeHeader, fileStat.Size())
+	rangeStart, rangeEnd, err := s.parseRangeHeader(rangeHeader, fileInfo.Size())
 	if err != nil {
 		return VideoRangeInfo{}, fmt.Errorf(errInvalidRangeHeader+": %s", err)
 	}
@@ -52,8 +57,11 @@ func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader stri
 	return VideoRangeInfo{
 		RangeStart: rangeStart,
 		RangeEnd:   rangeEnd,
-		FileSize:   fileStat.Size(),
-		VideoFile:  videoFile,
+		VideoInfo: VideoInfo{
+			VideoName: videoName,
+			FileSize:  fileInfo.Size(),
+			VideoFile: videoFile,
+		},
 	}, nil
 }
 
@@ -88,4 +96,22 @@ func (s VideoManagementService) parseRangeHeader(rangeHeader string, fileSize in
 	}
 
 	return start, end, nil
+}
+
+func (s VideoManagementService) GetVideoToDownload(videoName string) (VideoInfo, error) {
+	videoFile, err := os.Open("videos/" + videoName)
+	if err != nil {
+		return VideoInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
+	}
+
+	fileInfo, err := videoFile.Stat()
+	if err != nil {
+		return VideoInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
+	}
+
+	return VideoInfo{
+		VideoName: videoName,
+		FileSize:  fileInfo.Size(),
+		VideoFile: videoFile,
+	}, nil
 }

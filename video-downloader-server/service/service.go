@@ -10,6 +10,7 @@ type Download interface {
 
 type VideoManagement interface {
 	GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error)
+	GetVideoToDownload(videoName string) (VideoInfo, error)
 	//GetVideos() ([]string, error)
 	//DeleteVideo(videoName string) error
 	//DownloadVideoFile(videoName string) ([]byte, error)

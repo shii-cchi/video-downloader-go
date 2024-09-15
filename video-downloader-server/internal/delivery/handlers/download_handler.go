@@ -30,8 +30,8 @@ func (h downloadHandler) downloadVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.WithError(err).Error(delivery.ErrDownloadingVideo)
-		delivery.RespondWithJSON(w, http.StatusInternalServerError, delivery.JsonError{Error: delivery.ErrDownloadingVideo})
+		log.WithError(err).Error(delivery.ErrDownloadingVideoToServer)
+		delivery.RespondWithJSON(w, http.StatusInternalServerError, delivery.JsonError{Error: delivery.ErrDownloadingVideoToServer})
 		return
 	}
 
