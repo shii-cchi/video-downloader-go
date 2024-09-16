@@ -35,7 +35,7 @@ func RespondWithVideoRange(w http.ResponseWriter, info service.VideoRangeInfo) {
 	io.CopyN(w, info.VideoInfo.VideoFile, info.RangeEnd-info.RangeStart+1)
 }
 
-func RespondWithVideo(w http.ResponseWriter, info service.VideoInfo) {
+func RespondWithVideo(w http.ResponseWriter, info service.VideoFileInfo) {
 	defer info.VideoFile.Close()
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+info.VideoName)

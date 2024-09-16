@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"video-downloader-server/internal/repository"
 )
 
 const (
@@ -19,23 +20,26 @@ const (
 	errInvalidRange        = "invalid range"
 )
 
-type VideoManagementService struct {
-}
-
-func newVideoManagementService() *VideoManagementService {
-	return &VideoManagementService{}
-}
-
 type VideoRangeInfo struct {
 	RangeStart int64
 	RangeEnd   int64
-	VideoInfo  VideoInfo
+	VideoInfo  VideoFileInfo
 }
 
-type VideoInfo struct {
+type VideoFileInfo struct {
 	VideoName string
 	FileSize  int64
 	VideoFile *os.File
+}
+
+type VideoManagementService struct {
+	repo repository.VideoManagement
+}
+
+func newVideoManagementService(repo repository.VideoManagement) *VideoManagementService {
+	return &VideoManagementService{
+		repo: repo,
+	}
 }
 
 func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error) {
@@ -57,7 +61,7 @@ func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader stri
 	return VideoRangeInfo{
 		RangeStart: rangeStart,
 		RangeEnd:   rangeEnd,
-		VideoInfo: VideoInfo{
+		VideoInfo: VideoFileInfo{
 			VideoName: videoName,
 			FileSize:  fileInfo.Size(),
 			VideoFile: videoFile,
@@ -98,18 +102,18 @@ func (s VideoManagementService) parseRangeHeader(rangeHeader string, fileSize in
 	return start, end, nil
 }
 
-func (s VideoManagementService) GetVideoToDownload(videoName string) (VideoInfo, error) {
+func (s VideoManagementService) GetVideoToDownload(videoName string) (VideoFileInfo, error) {
 	videoFile, err := os.Open("videos/" + videoName)
 	if err != nil {
-		return VideoInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
+		return VideoFileInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
 	}
 
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		return VideoInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
+		return VideoFileInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
 	}
 
-	return VideoInfo{
+	return VideoFileInfo{
 		VideoName: videoName,
 		FileSize:  fileInfo.Size(),
 		VideoFile: videoFile,

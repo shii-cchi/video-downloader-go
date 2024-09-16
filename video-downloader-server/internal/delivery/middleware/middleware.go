@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -11,14 +10,15 @@ import (
 	"video-downloader-server/internal/delivery/dto"
 )
 
-func ApplyCors(extensionURL string) func(next http.Handler) http.Handler {
-	return cors.Handler(cors.Options{
-		AllowedOrigins:   []string{extensionURL},
-		AllowCredentials: true,
-		AllowedMethods:   []string{"POST"},
-		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept"},
-	})
-}
+//func ApplyCors(extensionURL string) func(next http.Handler) http.Handler {
+//	return cors.Handler(cors.Options{
+//		AllowedOrigins:     []string{extensionURL},
+//		AllowCredentials:   true,
+//		AllowedMethods:     []string{"POST", "OPTIONS"},
+//		AllowedHeaders:     []string{"Origin", "Content-Type", "Accept"},
+//		OptionsPassthrough: true,
+//	})
+//}
 
 func CheckDownloadInput(validate *validator.Validate) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

@@ -29,17 +29,17 @@ function downloadVideo(videoUrl, type) {
             quality = data.selectedQuality;
         }
 
-    fetch('http://localhost:8080/extension/download-to-server', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_url: videoUrl, type: type, quality: quality}),
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Video saved successfully:', data);
+        fetch('http://localhost:8080/extension/download-to-server', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ video_url: videoUrl, type: type, quality: quality }),
         })
-        .catch(error => {
-            console.error('Error saving video:', error);
-        });
+            .then(response => {
+                console.log('Request was sent');
+            })
+            .catch(error => {
+                console.error('Error saving video:', error);
+            });
     });
 }

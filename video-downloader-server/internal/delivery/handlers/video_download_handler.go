@@ -10,10 +10,10 @@ import (
 )
 
 type downloadHandler struct {
-	downloadService service.Download
+	downloadService service.VideoDownload
 }
 
-func newDownloadHandler(downloadService service.Download) *downloadHandler {
+func newDownloadHandler(downloadService service.VideoDownload) *downloadHandler {
 	return &downloadHandler{
 		downloadService: downloadService,
 	}
@@ -22,7 +22,7 @@ func newDownloadHandler(downloadService service.Download) *downloadHandler {
 func (h downloadHandler) downloadVideo(w http.ResponseWriter, r *http.Request) {
 	downloadInput := r.Context().Value(delivery.DownloadInputKey).(dto.DownloadInputDto)
 
-	err := h.downloadService.DownloadVideo(downloadInput)
+	err := h.downloadService.Download(downloadInput)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), delivery.ErrNotFoundVideoID) || strings.HasPrefix(err.Error(), delivery.ErrParsingURL) {
 			log.WithError(err).Error(delivery.ErrGettingID)

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/kkdai/youtube/v2"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"video-downloader-server/internal/delivery/dto"
+	"video-downloader-server/internal/repository"
 )
 
 const (
@@ -25,31 +27,56 @@ const (
 	errDownloadingVideo = "error failed to download video with status code"
 )
 
-type DownloadService struct {
+type VideoPathInfo struct {
+	VideoName   string
+	RealPath    string
+	UserPath    string
+	PreviewPath string
 }
 
-func newDownloadService() *DownloadService {
-	return &DownloadService{}
+type VideoDownloadService struct {
+	repo repository.VideoDownload
 }
 
-func (v *DownloadService) DownloadVideo(input dto.DownloadInputDto) error {
+func newVideoDownloadService(repo repository.VideoDownload) *VideoDownloadService {
+	return &VideoDownloadService{
+		repo: repo,
+	}
+}
+
+func (v *VideoDownloadService) Download(input dto.DownloadInputDto) error {
+	var videoPathInfo VideoPathInfo
+	var err error
+
 	if input.Type == "youtube" {
-		return v.downloadYouTubeVideo(input.VideoURL, input.Quality)
+		videoPathInfo, err = v.downloadFromYouTube(input.VideoURL, input.Quality)
+	} else {
+		videoPathInfo, err = v.downloadFromOther(input.VideoURL)
 	}
 
-	return v.downloadGeneralVideo(input.VideoURL)
-}
-
-func (v *DownloadService) downloadYouTubeVideo(videoURL string, quality string) error {
-	videoID, err := v.getVideoID(videoURL)
 	if err != nil {
 		return err
+	}
+
+	// makePreview
+
+	if err = v.repo.Create(context.Background(), repository.CreateParams{VideoName: videoPathInfo.VideoName}); err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (v *VideoDownloadService) downloadFromYouTube(videoURL string, quality string) (VideoPathInfo, error) {
+	videoID, err := v.getVideoID(videoURL)
+	if err != nil {
+		return VideoPathInfo{}, err
 	}
 
 	client := youtube.Client{}
 	video, err := client.GetVideo(videoID)
 	if err != nil {
-		return fmt.Errorf(errFetchingMetadata+": %s", err)
+		return VideoPathInfo{}, fmt.Errorf(errFetchingMetadata+": %s", err)
 	}
 
 	videoTitle := v.replaceSpecialSymbols(video.Title)
@@ -57,34 +84,36 @@ func (v *DownloadService) downloadYouTubeVideo(videoURL string, quality string) 
 	selectedVideoFormat := v.selectVideoFormat(video, quality)
 	videoFileName := fmt.Sprintf("videos/%s_video_%s.mp4", videoTitle, selectedVideoFormat.QualityLabel)
 	if err := v.downloadStreamToFile(client, video, selectedVideoFormat, videoFileName); err != nil {
-		return err
+		return VideoPathInfo{}, err
 	}
 	defer os.Remove(videoFileName)
 
 	selectedAudioFormat := v.selectAudioFormat(video)
 	audioFileName := fmt.Sprintf("videos/%s_audio.mp4", videoTitle)
 	if err := v.downloadStreamToFile(client, video, selectedAudioFormat, audioFileName); err != nil {
-		return err
+		return VideoPathInfo{}, err
 	}
 	defer os.Remove(audioFileName)
 
 	mergedFileName := fmt.Sprintf("videos/%s %s.mp4", videoTitle, selectedVideoFormat.QualityLabel)
 	if err := v.mergeVideoAudio(videoFileName, audioFileName, mergedFileName); err != nil {
-		return err
+		return VideoPathInfo{}, err
 	}
 
-	return nil
+	return VideoPathInfo{
+		VideoName: fmt.Sprintf("%s %s.mp4", videoTitle, selectedVideoFormat.QualityLabel),
+	}, nil
 }
 
-func (v *DownloadService) downloadGeneralVideo(videoURL string) error {
+func (v *VideoDownloadService) downloadFromOther(videoURL string) (VideoPathInfo, error) {
 	resp, err := http.Get(videoURL)
 	if err != nil {
-		return fmt.Errorf(errSendingReq+": %s", err)
+		return VideoPathInfo{}, fmt.Errorf(errSendingReq+": %s", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(errDownloadingVideo+": %d", resp.StatusCode)
+		return VideoPathInfo{}, fmt.Errorf(errDownloadingVideo+": %d", resp.StatusCode)
 	}
 
 	pathParts := strings.Split(videoURL, "/")
@@ -93,19 +122,21 @@ func (v *DownloadService) downloadGeneralVideo(videoURL string) error {
 
 	file, err := os.Create("videos/" + videoName)
 	if err != nil {
-		return fmt.Errorf(errCreatingFile+": %s", err)
+		return VideoPathInfo{}, fmt.Errorf(errCreatingFile+": %s", err)
 	}
 	defer file.Close()
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		return fmt.Errorf(errFillingFile+": %s", err)
+		return VideoPathInfo{}, fmt.Errorf(errFillingFile+": %s", err)
 	}
 
-	return nil
+	return VideoPathInfo{
+		VideoName: videoName,
+	}, nil
 }
 
-func (v *DownloadService) getVideoID(videoURL string) (string, error) {
+func (v *VideoDownloadService) getVideoID(videoURL string) (string, error) {
 	parsedURL, err := url.Parse(videoURL)
 	if err != nil {
 		return "", fmt.Errorf(errParsingURL+": %s", err)
@@ -120,14 +151,14 @@ func (v *DownloadService) getVideoID(videoURL string) (string, error) {
 	return videoID, nil
 }
 
-func (v *DownloadService) replaceSpecialSymbols(videoName string) string {
+func (v *VideoDownloadService) replaceSpecialSymbols(videoName string) string {
 	re := regexp.MustCompile(`[\\/:*?"<>|]`)
 	safeFileName := re.ReplaceAllString(videoName, "")
 
 	return safeFileName
 }
 
-func (v *DownloadService) selectVideoFormat(video *youtube.Video, quality string) *youtube.Format {
+func (v *VideoDownloadService) selectVideoFormat(video *youtube.Video, quality string) *youtube.Format {
 	videoFormats := video.Formats.Type("video")
 	for _, videoFormat := range videoFormats {
 		if quality == "best" || videoFormat.QualityLabel == quality {
@@ -138,7 +169,7 @@ func (v *DownloadService) selectVideoFormat(video *youtube.Video, quality string
 	return &videoFormats[0]
 }
 
-func (v *DownloadService) selectAudioFormat(video *youtube.Video) *youtube.Format {
+func (v *VideoDownloadService) selectAudioFormat(video *youtube.Video) *youtube.Format {
 	audioFormats := video.Formats.Type("audio")
 	for _, audioFormat := range audioFormats {
 		if strings.Contains(audioFormat.MimeType, "audio/mp4") {
@@ -149,7 +180,7 @@ func (v *DownloadService) selectAudioFormat(video *youtube.Video) *youtube.Forma
 	return &audioFormats[0]
 }
 
-func (v *DownloadService) downloadStreamToFile(client youtube.Client, video *youtube.Video, format *youtube.Format, fileName string) error {
+func (v *VideoDownloadService) downloadStreamToFile(client youtube.Client, video *youtube.Video, format *youtube.Format, fileName string) error {
 	stream, _, err := client.GetStream(video, format)
 	if err != nil {
 		return fmt.Errorf(errGettingStream+": %s", err)
@@ -171,7 +202,7 @@ func (v *DownloadService) downloadStreamToFile(client youtube.Client, video *you
 	return nil
 }
 
-func (v *DownloadService) mergeVideoAudio(videoFileName string, audioFileName string, mergedFileName string) error {
+func (v *VideoDownloadService) mergeVideoAudio(videoFileName string, audioFileName string, mergedFileName string) error {
 	cmd := exec.Command("ffmpeg", "-i", videoFileName, "-i", audioFileName, "-c", "copy", mergedFileName)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf(errMerging+": %s", err)

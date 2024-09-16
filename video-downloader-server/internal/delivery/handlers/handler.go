@@ -15,7 +15,7 @@ type Handler struct {
 }
 
 func NewHandler(service *service.Service, v *validator.Validate, extensionURL string) *Handler {
-	dh := newDownloadHandler(service.Download)
+	dh := newDownloadHandler(service.VideoDownload)
 	vm := newVideoManagementHandler(service.VideoManagement)
 
 	return &Handler{
@@ -28,7 +28,6 @@ func NewHandler(service *service.Service, v *validator.Validate, extensionURL st
 
 func (h Handler) RegisterRoutes(r *chi.Mux) {
 	r.Route("/extension", func(r chi.Router) {
-		r.Use(middleware.ApplyCors(h.extensionURL))
 		r.Use(middleware.CheckDownloadInput(h.validator))
 
 		r.Post("/download-to-server", h.downloadHandler.downloadVideo)

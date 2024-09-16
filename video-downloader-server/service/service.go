@@ -2,31 +2,32 @@ package service
 
 import (
 	"video-downloader-server/internal/delivery/dto"
+	"video-downloader-server/internal/repository"
 )
 
-type Download interface {
-	DownloadVideo(input dto.DownloadInputDto) error
+type VideoDownload interface {
+	Download(input dto.DownloadInputDto) error
 }
 
 type VideoManagement interface {
 	GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error)
-	GetVideoToDownload(videoName string) (VideoInfo, error)
+	GetVideoToDownload(videoName string) (VideoFileInfo, error)
 	//GetVideos() ([]string, error)
 	//DeleteVideo(videoName string) error
 	//DownloadVideoFile(videoName string) ([]byte, error)
 }
 
 type Service struct {
-	Download        Download
+	VideoDownload   VideoDownload
 	VideoManagement VideoManagement
 }
 
-func NewService() *Service {
-	downloadService := newDownloadService()
-	videoManagementService := newVideoManagementService()
+func NewService(repo *repository.Repository) *Service {
+	videoDownloadService := newVideoDownloadService(repo.VideoDownload)
+	videoManagementService := newVideoManagementService(repo.VideoManagement)
 
 	return &Service{
-		Download:        downloadService,
+		VideoDownload:   videoDownloadService,
 		VideoManagement: videoManagementService,
 	}
 }
