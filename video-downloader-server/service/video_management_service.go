@@ -45,17 +45,17 @@ func newVideoManagementService(repo repository.VideoManagement) *VideoManagement
 func (s VideoManagementService) GetVideoRange(videoName string, rangeHeader string) (VideoRangeInfo, error) {
 	videoFile, err := os.Open("videos/" + videoName)
 	if err != nil {
-		return VideoRangeInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
+		return VideoRangeInfo{}, fmt.Errorf(errVideoNotFound+": %w", err)
 	}
 
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		return VideoRangeInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
+		return VideoRangeInfo{}, fmt.Errorf(errGettingFileInfo+": %w", err)
 	}
 
 	rangeStart, rangeEnd, err := s.parseRangeHeader(rangeHeader, fileInfo.Size())
 	if err != nil {
-		return VideoRangeInfo{}, fmt.Errorf(errInvalidRangeHeader+": %s", err)
+		return VideoRangeInfo{}, fmt.Errorf(errInvalidRangeHeader+": %w", err)
 	}
 
 	return VideoRangeInfo{
@@ -105,12 +105,12 @@ func (s VideoManagementService) parseRangeHeader(rangeHeader string, fileSize in
 func (s VideoManagementService) GetVideoToDownload(videoName string) (VideoFileInfo, error) {
 	videoFile, err := os.Open("videos/" + videoName)
 	if err != nil {
-		return VideoFileInfo{}, fmt.Errorf(errVideoNotFound+": %s", err)
+		return VideoFileInfo{}, fmt.Errorf(errVideoNotFound+": %w", err)
 	}
 
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		return VideoFileInfo{}, fmt.Errorf(errGettingFileInfo+": %s", err)
+		return VideoFileInfo{}, fmt.Errorf(errGettingFileInfo+": %w", err)
 	}
 
 	return VideoFileInfo{

@@ -24,7 +24,7 @@ func NewVideoDownloadRepo(db *mongo.Database) *VideoDownloadRepo {
 }
 
 func (r *VideoDownloadRepo) Create(ctx context.Context, createParams CreateParams) error {
-	doc := bson.D{{"videoName", createParams.VideoName}}
+	doc := bson.D{{"video_name", createParams.VideoName}, {"real_path", createParams.RealPath}, {"user_path", createParams.UserPath}, {"preview_path", createParams.PreviewPath}}
 	_, err := r.db.InsertOne(ctx, doc)
 	if err != nil {
 		return err
