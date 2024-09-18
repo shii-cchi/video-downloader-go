@@ -251,7 +251,7 @@ func (v *VideoDownloadService) downloadFromOther(videoURL string) (string, strin
 		return "", "", fmt.Errorf(errFillingFile+": %w", err)
 	}
 
-	return videoName, filepath.Join(realPath, videoName), nil
+	return strings.TrimSuffix(videoName, filepath.Ext(videoName)), filepath.Join(realPath, videoName), nil
 }
 
 func (v *VideoDownloadService) createPreview(videoName string, realPath string) (string, error) {
