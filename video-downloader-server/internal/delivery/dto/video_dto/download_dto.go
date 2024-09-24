@@ -1,6 +1,6 @@
-package dto
+package video_dto
 
-type DownloadInputDto struct {
+type DownloadDto struct {
 	VideoURL   string `json:"video_url" validate:"required,url"`
 	FolderName string `json:"folder_name" validate:"required"`
 	Type       string `json:"type" validate:"required,oneof=youtube general"`

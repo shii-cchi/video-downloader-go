@@ -2,7 +2,6 @@ package validator
 
 import (
 	"github.com/go-playground/validator/v10"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"regexp"
 )
 
@@ -16,11 +15,15 @@ func Init() *validator.Validate {
 }
 
 func folderNameValidation(fl validator.FieldLevel) bool {
+	folderName := fl.Field().String()
+	if len(folderName) < 1 || len(folderName) > 20 {
+		return false
+	}
+
 	re := regexp.MustCompile(`^[\w\s-]+$`)
-	return re.MatchString(fl.Field().String())
+	return re.MatchString(folderName)
 }
 
 func objectIDValidation(fl validator.FieldLevel) bool {
-	_, err := primitive.ObjectIDFromHex(fl.Field().String())
-	return err == nil
+	return !fl.Field().IsZero()
 }

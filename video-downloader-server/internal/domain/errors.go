@@ -45,7 +45,13 @@ const (
 
 // folder service
 const (
+	ErrParentDirNotFound  = "parent dir with this ID not found"
+	ErrCheckingParentDir  = "error checking parent dir"
 	ErrCheckingFolder     = "error checking folder exist"
 	ErrFolderAlreadyExist = "folder with this name already exist in this folder"
 	ErrCreatingFolder     = "error creating folder"
+	ErrFolderNotFound     = "folder with this ID not found"
+	ErrUpdatingFolderName = "error updating folder name"
+	ErrGettingFolderName  = "error getting folder name by id"
+	ErrMovingFolder       = "error moving folder"
 )

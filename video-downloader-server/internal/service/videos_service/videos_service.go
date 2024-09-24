@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"video-downloader-server/internal/delivery/dto"
+	"video-downloader-server/internal/delivery/dto/video_dto"
 	"video-downloader-server/internal/domain"
 	"video-downloader-server/internal/service/strategies"
 )
@@ -41,7 +41,7 @@ func (v *VideosService) setVideoDownloadStrategy(strategy VideoDownloadStrategy)
 	v.strategy = strategy
 }
 
-func (v *VideosService) DownloadToServer(input dto.DownloadInputDto) error {
+func (v *VideosService) DownloadToServer(input video_dto.DownloadDto) error {
 	switch input.Type {
 	case domain.YouTubeVideoType:
 		v.setVideoDownloadStrategy(strategies.YouTubeDownloadStrategy{})

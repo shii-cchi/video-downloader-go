@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"strings"
 	"video-downloader-server/internal/delivery"
-	"video-downloader-server/internal/delivery/dto"
+	"video-downloader-server/internal/delivery/dto/video_dto"
 	"video-downloader-server/internal/delivery/middleware"
 	"video-downloader-server/internal/domain"
 )
 
 type VideosService interface {
-	DownloadToServer(input dto.DownloadInputDto) error
+	DownloadToServer(input video_dto.DownloadDto) error
 	GetVideoFileInfo(videoID string) (domain.VideoFileInfo, error)
 	GetVideoRangeInfo(videoID string, rangeHeader string) (domain.VideoRangeInfo, error)
 }
@@ -40,7 +40,7 @@ func (h VideosHandler) RegisterRoutes(r *chi.Mux) {
 }
 
 func (h VideosHandler) downloadVideoToServer(w http.ResponseWriter, r *http.Request) {
-	downloadInput := r.Context().Value(delivery.DownloadInputKey).(dto.DownloadInputDto)
+	downloadInput := r.Context().Value(delivery.DownloadInputKey).(video_dto.DownloadDto)
 
 	err := h.videosService.DownloadToServer(downloadInput)
 	if err != nil {

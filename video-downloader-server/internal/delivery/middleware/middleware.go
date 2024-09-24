@@ -7,7 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"video-downloader-server/internal/delivery"
-	"video-downloader-server/internal/delivery/dto"
+	"video-downloader-server/internal/delivery/dto/folder_dto"
+	"video-downloader-server/internal/delivery/dto/video_dto"
 )
 
 //func ApplyCors(extensionURL string) func(next http.Handler) http.Handler {
@@ -23,7 +24,7 @@ import (
 func CheckDownloadInput(validate *validator.Validate) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			downloadInput := dto.DownloadInputDto{}
+			downloadInput := video_dto.DownloadDto{}
 			if err := json.NewDecoder(r.Body).Decode(&downloadInput); err != nil {
 				log.WithError(err).Error(delivery.ErrInvalidDownloadInput)
 				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidDownloadInput, Message: delivery.MesInvalidJSON})
@@ -59,7 +60,7 @@ func CheckVideoIDInput(next http.Handler) http.Handler {
 func CheckCreateFolderInput(validate *validator.Validate) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			createFolderInput := dto.CreateFolderInputDto{}
+			createFolderInput := folder_dto.CreateFolderDto{}
 			if err := json.NewDecoder(r.Body).Decode(&createFolderInput); err != nil {
 				log.WithError(err).Error(delivery.ErrInvalidCreateFolderInput)
 				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidCreateFolderInput, Message: delivery.MesInvalidJSON})
@@ -73,6 +74,50 @@ func CheckCreateFolderInput(validate *validator.Validate) func(next http.Handler
 			}
 
 			ctx := context.WithValue(r.Context(), delivery.CreateFolderInputKey, createFolderInput)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func CheckRenameFolderInput(validate *validator.Validate) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			renameFolderInput := folder_dto.RenameFolderDto{}
+			if err := json.NewDecoder(r.Body).Decode(&renameFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidRenameFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidRenameFolderInput, Message: delivery.MesInvalidJSON})
+				return
+			}
+
+			if err := validate.Struct(&renameFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidRenameFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidRenameFolderInput, Message: delivery.MesInvalidRenameFolderInput})
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), delivery.RenameFolderInputKey, renameFolderInput)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func CheckMoveFolderInput(validate *validator.Validate) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			moveFolderInput := folder_dto.MoveFolderDto{}
+			if err := json.NewDecoder(r.Body).Decode(&moveFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidMoveFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidMoveFolderInput, Message: delivery.MesInvalidJSON})
+				return
+			}
+
+			if err := validate.Struct(&moveFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidMoveFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidMoveFolderInput, Message: delivery.MesInvalidMoveFolderInput})
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), delivery.MoveFolderInputKey, moveFolderInput)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
