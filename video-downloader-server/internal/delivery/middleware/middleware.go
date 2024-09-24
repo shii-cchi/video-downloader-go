@@ -42,16 +42,38 @@ func CheckDownloadInput(validate *validator.Validate) func(next http.Handler) ht
 	}
 }
 
-func CheckVideoNameInput(next http.Handler) http.Handler {
+func CheckVideoIDInput(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		videoName := r.URL.Query().Get("name")
-		if videoName == "" {
-			log.Error(delivery.ErrInvalidVideoNameInput)
-			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidVideoNameInput, Message: delivery.MesInvalidVideoNameInput})
+		videoID := r.URL.Query().Get("id")
+		if videoID == "" {
+			log.Error(delivery.ErrInvalidVideoIDInput)
+			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidVideoIDInput, Message: delivery.MesInvalidVideoIDInput})
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), delivery.VideoNameInputKey, videoName)
+		ctx := context.WithValue(r.Context(), delivery.VideoIDInputKey, videoID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func CheckCreateFolderInput(validate *validator.Validate) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			createFolderInput := dto.CreateFolderInputDto{}
+			if err := json.NewDecoder(r.Body).Decode(&createFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidCreateFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidCreateFolderInput, Message: delivery.MesInvalidJSON})
+				return
+			}
+
+			if err := validate.Struct(&createFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidCreateFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidCreateFolderInput, Message: delivery.MesInvalidCreateFolderInput})
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), delivery.CreateFolderInputKey, createFolderInput)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

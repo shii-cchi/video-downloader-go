@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"video-downloader-server/service"
+	"video-downloader-server/internal/domain"
 )
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
@@ -23,7 +23,7 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(data)
 }
 
-func RespondWithVideoRange(w http.ResponseWriter, info service.VideoRangeInfo) {
+func RespondWithVideoRange(w http.ResponseWriter, info domain.VideoRangeInfo) {
 	defer info.VideoInfo.VideoFile.Close()
 
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", info.RangeStart, info.RangeEnd, info.VideoInfo.FileSize))
@@ -35,7 +35,7 @@ func RespondWithVideoRange(w http.ResponseWriter, info service.VideoRangeInfo) {
 	io.CopyN(w, info.VideoInfo.VideoFile, info.RangeEnd-info.RangeStart+1)
 }
 
-func RespondWithVideo(w http.ResponseWriter, info service.VideoFileInfo) {
+func RespondWithVideo(w http.ResponseWriter, info domain.VideoFileInfo) {
 	defer info.VideoFile.Close()
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+info.VideoName)

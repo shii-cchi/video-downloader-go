@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"video-downloader-server/internal/config"
-	"video-downloader-server/internal/delivery/handlers"
+	"video-downloader-server/internal/delivery/handlers/folders_handler"
+	"video-downloader-server/internal/delivery/handlers/videos_handler"
 	"video-downloader-server/internal/repository"
-	"video-downloader-server/service"
+	"video-downloader-server/internal/service/folders_service"
+	"video-downloader-server/internal/service/preview_service"
+	"video-downloader-server/internal/service/videos_service"
+	"video-downloader-server/internal/validator"
 )
 
 const (
@@ -47,14 +50,20 @@ func Run() {
 	log.Info(successfulConnectionToDb)
 
 	db := client.Database(cfg.DbName)
-	repo := repository.NewRepository(db)
+	videosRepo := repository.NewVideosRepo(db)
+	foldersRepo := repository.NewFoldersRepo(db)
 
-	s := service.NewService(repo)
-	v := validator.New()
+	previewService := preview_service.NewPreviewService()
+	videosService := videos_service.NewVideosService(videosRepo, previewService)
+	folderService := folders_service.NewFoldersService(foldersRepo)
+
+	v := validator.Init()
+	videosHandler := videos_handler.NewVideosHandler(videosService, v)
+	foldersHandler := folders_handler.NewFoldersHandler(folderService, v)
 
 	r := chi.NewRouter()
-	h := handlers.NewHandler(s, v, cfg.ExtensionURL)
-	h.RegisterRoutes(r)
+	videosHandler.RegisterRoutes(r)
+	foldersHandler.RegisterRoutes(r)
 
 	log.Infof(serverStart+" %s", cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, r))
