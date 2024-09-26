@@ -16,6 +16,7 @@ type FoldersService interface {
 	Create(createFolderInput folder_dto.CreateFolderDto) (folder_dto.FolderDto, error)
 	Rename(renameFolderInput folder_dto.RenameFolderDto) (folder_dto.FolderDto, error)
 	Move(moveFolderInput folder_dto.MoveFolderDto) (folder_dto.FolderDto, error)
+	Delete(deleteFolderInput folder_dto.DeleteFolderDto) error
 }
 
 type FoldersHandler struct {
@@ -35,6 +36,7 @@ func (f FoldersHandler) RegisterRoutes(r *chi.Mux) {
 		r.With(middleware.CheckCreateFolderInput(f.validator)).Post("/", f.createFolder)
 		r.With(middleware.CheckRenameFolderInput(f.validator)).Put("/rename", f.renameFolder)
 		r.With(middleware.CheckMoveFolderInput(f.validator)).Put("/move", f.moveFolder)
+		r.With(middleware.CheckDeleteFolderInput(f.validator)).Delete("/", f.deleteFolder)
 	})
 }
 
@@ -49,8 +51,8 @@ func (f FoldersHandler) createFolder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if strings.HasPrefix(err.Error(), domain.ErrParentDirNotFound) {
-			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrCreatingFolder, Message: domain.ErrParentDirNotFound})
+		if strings.HasPrefix(err.Error(), domain.ErrFolderNotFound) {
+			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrCreatingFolder, Message: domain.ErrFolderNotFound})
 			return
 		}
 
@@ -95,8 +97,8 @@ func (f FoldersHandler) moveFolder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if strings.HasPrefix(err.Error(), domain.ErrParentDirNotFound) {
-			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrMovingFolder, Message: domain.ErrParentDirNotFound})
+		if strings.HasPrefix(err.Error(), domain.ErrFolderNotFound) {
+			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrMovingFolder, Message: domain.ErrFolderNotFound})
 			return
 		}
 
@@ -105,4 +107,22 @@ func (f FoldersHandler) moveFolder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	delivery.RespondWithJSON(w, http.StatusOK, folder)
+}
+
+func (f FoldersHandler) deleteFolder(w http.ResponseWriter, r *http.Request) {
+	deleteFolderInput := r.Context().Value(delivery.DeleteFolderInputKey).(folder_dto.DeleteFolderDto)
+
+	err := f.foldersService.Delete(deleteFolderInput)
+	if err != nil {
+		log.WithError(err).Error(delivery.ErrDeletingFolder)
+		if strings.HasPrefix(err.Error(), domain.ErrFolderNotFound) {
+			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrDeletingFolder, Message: domain.ErrFolderNotFound})
+			return
+		}
+
+		delivery.RespondWithJSON(w, http.StatusInternalServerError, delivery.JsonError{Error: delivery.ErrDeletingFolder})
+		return
+	}
+
+	delivery.RespondWithJSON(w, http.StatusOK, nil)
 }

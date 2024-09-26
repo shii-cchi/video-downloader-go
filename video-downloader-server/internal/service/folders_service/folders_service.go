@@ -17,15 +17,23 @@ type FoldersRepo interface {
 	UpdateNameByID(ctx context.Context, folderID primitive.ObjectID, newFolderName string) error
 	Move(ctx context.Context, folderID primitive.ObjectID, parentDirID primitive.ObjectID) error
 	GetNameByID(ctx context.Context, folderID primitive.ObjectID) (string, error)
+	Delete(ctx context.Context, folderID primitive.ObjectID) error
+	GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error)
+}
+
+type Videos interface {
+	DeleteVideos(foldersID []primitive.ObjectID) error
 }
 
 type FoldersService struct {
-	repo FoldersRepo
+	repo          FoldersRepo
+	videosService Videos
 }
 
-func NewFoldersService(repo FoldersRepo) *FoldersService {
+func NewFoldersService(repo FoldersRepo, videosService Videos) *FoldersService {
 	return &FoldersService{
-		repo: repo,
+		repo:          repo,
+		videosService: videosService,
 	}
 }
 
@@ -35,12 +43,12 @@ func (f *FoldersService) Create(createFolderInput folder_dto.CreateFolderDto) (f
 	if createFolderInput.ParentDirID != primitive.NilObjectID {
 		folder.ParentDirID = createFolderInput.ParentDirID
 
-		if err := f.checkParentDirExistence(folder.ParentDirID); err != nil {
+		if err := f.checkFolderExistenceByID(folder.ParentDirID); err != nil {
 			return folder_dto.FolderDto{}, err
 		}
 	}
 
-	if err := f.checkFolderExistence(folder.FolderName, folder.ParentDirID); err != nil {
+	if err := f.checkFolderExistenceByName(folder.FolderName, folder.ParentDirID); err != nil {
 		return folder_dto.FolderDto{}, err
 	}
 
@@ -49,7 +57,16 @@ func (f *FoldersService) Create(createFolderInput folder_dto.CreateFolderDto) (f
 		return folder_dto.FolderDto{}, fmt.Errorf(domain.ErrCreatingFolder+": %w", err)
 	}
 
-	return f.createFolderOutput(newFolder), nil
+	res := folder_dto.FolderDto{
+		ID:         newFolder.ID,
+		FolderName: newFolder.FolderName,
+	}
+
+	if newFolder.ParentDirID != primitive.NilObjectID {
+		res.ParentDirID = &newFolder.ParentDirID
+	}
+
+	return res, nil
 }
 
 func (f *FoldersService) Rename(renameFolderInput folder_dto.RenameFolderDto) (folder_dto.FolderDto, error) {
@@ -68,20 +85,20 @@ func (f *FoldersService) Rename(renameFolderInput folder_dto.RenameFolderDto) (f
 }
 
 func (f *FoldersService) Move(moveFolderInput folder_dto.MoveFolderDto) (folder_dto.FolderDto, error) {
-	if err := f.checkParentDirExistence(moveFolderInput.ParentDirID); err != nil {
+	if err := f.checkFolderExistenceByID(moveFolderInput.ParentDirID); err != nil {
+		return folder_dto.FolderDto{}, err
+	}
+
+	if err := f.checkFolderExistenceByID(moveFolderInput.ID); err != nil {
 		return folder_dto.FolderDto{}, err
 	}
 
 	name, err := f.repo.GetNameByID(context.Background(), moveFolderInput.ID)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return folder_dto.FolderDto{}, fmt.Errorf(domain.ErrFolderNotFound+": %w", err)
-		}
-
 		return folder_dto.FolderDto{}, fmt.Errorf(domain.ErrGettingFolderName+": %w", err)
 	}
 
-	if err := f.checkFolderExistence(name, moveFolderInput.ParentDirID); err != nil {
+	if err := f.checkFolderExistenceByName(name, moveFolderInput.ParentDirID); err != nil {
 		return folder_dto.FolderDto{}, err
 	}
 
@@ -95,20 +112,38 @@ func (f *FoldersService) Move(moveFolderInput folder_dto.MoveFolderDto) (folder_
 	}, nil
 }
 
-func (f *FoldersService) checkParentDirExistence(parentDirID primitive.ObjectID) error {
-	err := f.repo.CheckExistByID(context.Background(), parentDirID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return fmt.Errorf(domain.ErrParentDirNotFound+": %w", err)
-		}
+func (f *FoldersService) Delete(deleteFolderInput folder_dto.DeleteFolderDto) error {
+	if err := f.checkFolderExistenceByID(deleteFolderInput.ID); err != nil {
+		return err
+	}
 
-		return fmt.Errorf(domain.ErrCheckingParentDir+": %w", err)
+	var foldersID []primitive.ObjectID
+
+	if err := f.deleteFolder(deleteFolderInput.ID, &foldersID); err != nil {
+		return err
+	}
+
+	if err := f.videosService.DeleteVideos(foldersID); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (f *FoldersService) checkFolderExistence(folderName string, parentDirID primitive.ObjectID) error {
+func (f *FoldersService) checkFolderExistenceByID(folderID primitive.ObjectID) error {
+	err := f.repo.CheckExistByID(context.Background(), folderID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf(domain.ErrFolderNotFound+": %w", err)
+		}
+
+		return fmt.Errorf(domain.ErrCheckingFolder+": %w", err)
+	}
+
+	return nil
+}
+
+func (f *FoldersService) checkFolderExistenceByName(folderName string, parentDirID primitive.ObjectID) error {
 	err := f.repo.CheckExistByName(context.Background(), folderName, parentDirID)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return fmt.Errorf(domain.ErrCheckingFolder+": %w", err)
@@ -121,15 +156,23 @@ func (f *FoldersService) checkFolderExistence(folderName string, parentDirID pri
 	return nil
 }
 
-func (f *FoldersService) createFolderOutput(folder domain.Folder) folder_dto.FolderDto {
-	res := folder_dto.FolderDto{
-		ID:         folder.ID,
-		FolderName: folder.FolderName,
+func (f *FoldersService) deleteFolder(folderID primitive.ObjectID, foldersID *[]primitive.ObjectID) error {
+	if err := f.repo.Delete(context.Background(), folderID); err != nil {
+		return fmt.Errorf(domain.ErrDeletingFolder+": %w", err)
 	}
 
-	if folder.ParentDirID != primitive.NilObjectID {
-		res.ParentDirID = &folder.ParentDirID
+	*foldersID = append(*foldersID, folderID)
+
+	folders, err := f.repo.GetFolders(context.Background(), folderID)
+	if err != nil {
+		return fmt.Errorf(domain.ErrGettingFoldersList+": %w", err)
 	}
 
-	return res
+	for _, folder := range folders {
+		if err := f.deleteFolder(folder.ID, foldersID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

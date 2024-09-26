@@ -55,7 +55,7 @@ func Run() {
 
 	previewService := preview_service.NewPreviewService()
 	videosService := videos_service.NewVideosService(videosRepo, previewService)
-	folderService := folders_service.NewFoldersService(foldersRepo)
+	folderService := folders_service.NewFoldersService(foldersRepo, videosService)
 
 	v := validator.Init()
 	videosHandler := videos_handler.NewVideosHandler(videosService, v)

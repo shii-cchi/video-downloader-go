@@ -96,3 +96,43 @@ func (r *FoldersRepo) GetNameByID(ctx context.Context, folderID primitive.Object
 
 	return folder.FolderName, nil
 }
+
+func (r *FoldersRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
+	filter := bson.M{"_id": folderID}
+
+	result, err := r.db.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}
+
+func (r *FoldersRepo) GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error) {
+	filter := bson.M{"parent_dir_id": parentDirID}
+
+	cursor, err := r.db.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var folders []domain.Folder
+	for cursor.Next(ctx) {
+		var folder domain.Folder
+		if err := cursor.Decode(&folder); err != nil {
+			return nil, err
+		}
+		folders = append(folders, folder)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return folders, nil
+}

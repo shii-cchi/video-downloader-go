@@ -3,6 +3,7 @@ package videos_service
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 
 type VideosRepo interface {
 	Create(ctx context.Context, video domain.Video) error
+	Delete(ctx context.Context, folderID primitive.ObjectID) error
+	GetRealPaths(ctx context.Context, folderID primitive.ObjectID) ([]string, []string, error)
 }
 
 type Preview interface {
@@ -61,8 +64,8 @@ func (v *VideosService) DownloadToServer(input video_dto.DownloadDto) error {
 
 	return v.repo.Create(context.Background(), domain.Video{
 		VideoName:   videoName,
+		FolderID:    input.FolderID,
 		RealPath:    realPath,
-		UserPath:    input.FolderName,
 		PreviewPath: previewPath,
 	})
 }
@@ -98,6 +101,30 @@ func (v *VideosService) GetVideoRangeInfo(videoID string, rangeHeader string) (d
 		RangeEnd:   rangeEnd,
 		VideoInfo:  videoFileInfo,
 	}, nil
+}
+
+func (v *VideosService) DeleteVideos(foldersID []primitive.ObjectID) error {
+	for _, folderID := range foldersID {
+		realPaths, previewPaths, err := v.repo.GetRealPaths(context.Background(), folderID)
+		if err != nil {
+			return fmt.Errorf(domain.ErrGettingRealPath+": %w", err)
+		}
+
+		for _, realPath := range realPaths {
+			os.Remove(filepath.Join(domain.CommonVideoDir, realPath))
+		}
+
+		for _, previewPath := range previewPaths {
+			os.Remove(filepath.Join(domain.CommonPreviewDir, previewPath))
+		}
+
+		err = v.repo.Delete(context.Background(), folderID)
+		if err != nil {
+			return fmt.Errorf(domain.ErrDeletingVideo+": %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (v *VideosService) parseRangeHeader(rangeHeader string, fileSize int64) (int64, int64, error) {

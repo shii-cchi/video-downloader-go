@@ -15,8 +15,8 @@ const (
 type Video struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	VideoName   string             `bson:"video_name"`
+	FolderID    primitive.ObjectID `bson:"folder_id"`
 	RealPath    string             `bson:"real_path"`
-	UserPath    string             `bson:"user_path"`
 	PreviewPath string             `bson:"preview_path"`
 }
 

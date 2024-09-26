@@ -20,9 +20,10 @@ const (
 	CreateFolderInputKey contextKey = "createFolderInput"
 	RenameFolderInputKey contextKey = "renameFolderInput"
 	MoveFolderInputKey   contextKey = "moveFolderInput"
+	DeleteFolderInputKey contextKey = "deleteFolderInput"
 
 	ErrInvalidDownloadInput     = "invalid download input body"
-	MesInvalidDownloadInput     = "fields url, folder_name and type are required and can't be empty, field url must be url format, field type can be 'general' or 'youtube', field quality can be empty or one of 2160p 1440p 1080p 720p 480p 360p 240p 144p best"
+	MesInvalidDownloadInput     = "fields url, folder_id and type are required and can't be empty, field url must be url format, field folder_id must be object id, field type can be 'general' or 'youtube', field quality can be empty or one of 2160p 1440p 1080p 720p 480p 360p 240p 144p best"
 	MesInvalidJSON              = "invalid JSON body"
 	ErrInvalidVideoIDInput      = "invalid video id input"
 	MesInvalidVideoIDInput      = "video id is required"
@@ -32,6 +33,8 @@ const (
 	MesInvalidRenameFolderInput = "fields id and folder_name are required, id must be valid object id, folder_name must be valid name and can't be empty"
 	ErrInvalidMoveFolderInput   = "invalid move folder input body"
 	MesInvalidMoveFolderInput   = "fields id and parent_dir_id are required, must be valid object id and can't be empty"
+	ErrInvalidDeleteFolderInput = "invalid delete folder input body"
+	MesInvalidDeleteFolderInput = "field id are required, must be valid object id and can't be empty"
 
 	ErrGettingID                = "error getting videoID from VideoURL"
 	ErrDownloadingVideoToServer = "error downloading video to server"
@@ -46,4 +49,5 @@ const (
 	ErrCreatingFolder = "error creating new folder"
 	ErrRenameFolder   = "error rename folder"
 	ErrMovingFolder   = "error moving folder"
+	ErrDeletingFolder = "error deleting folder"
 )

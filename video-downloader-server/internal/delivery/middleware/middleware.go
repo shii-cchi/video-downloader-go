@@ -122,3 +122,25 @@ func CheckMoveFolderInput(validate *validator.Validate) func(http.Handler) http.
 		})
 	}
 }
+
+func CheckDeleteFolderInput(validate *validator.Validate) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			deleteFolderInput := folder_dto.DeleteFolderDto{}
+			if err := json.NewDecoder(r.Body).Decode(&deleteFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidDeleteFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidDeleteFolderInput, Message: delivery.MesInvalidJSON})
+				return
+			}
+
+			if err := validate.Struct(&deleteFolderInput); err != nil {
+				log.WithError(err).Error(delivery.ErrInvalidDeleteFolderInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidDeleteFolderInput, Message: delivery.MesInvalidDeleteFolderInput})
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), delivery.DeleteFolderInputKey, deleteFolderInput)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
