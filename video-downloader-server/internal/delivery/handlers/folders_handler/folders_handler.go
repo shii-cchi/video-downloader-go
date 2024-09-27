@@ -33,10 +33,10 @@ func NewFoldersHandler(foldersService FoldersService, validator *validator.Valid
 
 func (f FoldersHandler) RegisterRoutes(r *chi.Mux) {
 	r.Route("/folders", func(r chi.Router) {
-		r.With(middleware.CheckCreateFolderInput(f.validator)).Post("/", f.createFolder)
-		r.With(middleware.CheckRenameFolderInput(f.validator)).Put("/rename", f.renameFolder)
-		r.With(middleware.CheckMoveFolderInput(f.validator)).Put("/move", f.moveFolder)
-		r.With(middleware.CheckDeleteFolderInput(f.validator)).Delete("/", f.deleteFolder)
+		r.With(middleware.ValidateCreateFolderInput(f.validator)).Post("/", f.createFolder)
+		r.With(middleware.ValidateRenameFolderInput(f.validator)).Put("/rename", f.renameFolder)
+		r.With(middleware.ValidateMoveFolderInput(f.validator)).Put("/move", f.moveFolder)
+		r.With(middleware.ValidateDeleteFolderInput(f.validator)).Delete("/", f.deleteFolder)
 	})
 }
 

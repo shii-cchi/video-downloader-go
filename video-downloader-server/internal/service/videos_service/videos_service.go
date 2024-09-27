@@ -44,7 +44,7 @@ func (v *VideosService) setVideoDownloadStrategy(strategy VideoDownloadStrategy)
 	v.strategy = strategy
 }
 
-func (v *VideosService) DownloadToServer(input video_dto.DownloadDto) error {
+func (v *VideosService) DownloadToServer(input video_dto.DownloadVideoDto) error {
 	switch input.Type {
 	case domain.YouTubeVideoType:
 		v.setVideoDownloadStrategy(strategies.YouTubeDownloadStrategy{})

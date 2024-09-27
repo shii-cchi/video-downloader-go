@@ -14,7 +14,7 @@ import (
 )
 
 type VideosService interface {
-	DownloadToServer(input video_dto.DownloadDto) error
+	DownloadToServer(input video_dto.DownloadVideoDto) error
 	GetVideoFileInfo(videoID string) (domain.VideoFileInfo, error)
 	GetVideoRangeInfo(videoID string, rangeHeader string) (domain.VideoRangeInfo, error)
 	DeleteVideos(foldersID []primitive.ObjectID) error
@@ -34,15 +34,15 @@ func NewVideosHandler(videosService VideosService, validator *validator.Validate
 
 func (h VideosHandler) RegisterRoutes(r *chi.Mux) {
 	r.Route("/videos", func(r chi.Router) {
-		r.With(middleware.CheckVideoIDInput).Get("/stream", h.streamVideo)
-		r.With(middleware.CheckVideoIDInput).Get("/download-to-local", h.downloadVideoToLocal)
+		r.With(middleware.ValidateVideoIDInput).Get("/stream", h.streamVideo)
+		r.With(middleware.ValidateVideoIDInput).Get("/download-to-local", h.downloadVideoToLocal)
 
-		r.With(middleware.CheckDownloadInput(h.validator)).Post("/download-to-server", h.downloadVideoToServer)
+		r.With(middleware.ValidateVideoDownloadInput(h.validator)).Post("/download-to-server", h.downloadVideoToServer)
 	})
 }
 
 func (h VideosHandler) downloadVideoToServer(w http.ResponseWriter, r *http.Request) {
-	downloadInput := r.Context().Value(delivery.DownloadInputKey).(video_dto.DownloadDto)
+	downloadInput := r.Context().Value(delivery.DownloadInputKey).(video_dto.DownloadVideoDto)
 
 	err := h.videosService.DownloadToServer(downloadInput)
 	if err != nil {

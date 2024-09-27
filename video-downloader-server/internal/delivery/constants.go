@@ -1,26 +1,19 @@
 package delivery
 
-type contextKey string
+type СontextKey string
 
 type JsonError struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 }
 
-type DownloadInputDto struct {
-	VideoURL   string `json:"video_url" validate:"required,url"`
-	FolderName string `json:"folder_name" validate:"required"`
-	Type       string `json:"type" validate:"required,oneof=youtube general"`
-	Quality    string `json:"quality" validate:"omitempty,oneof=2160p 1440p 1080p 720p 480p 360p 240p 144p best"`
-}
-
 const (
-	DownloadInputKey     contextKey = "downloadInput"
-	VideoIDInputKey      contextKey = "videoIDInput"
-	CreateFolderInputKey contextKey = "createFolderInput"
-	RenameFolderInputKey contextKey = "renameFolderInput"
-	MoveFolderInputKey   contextKey = "moveFolderInput"
-	DeleteFolderInputKey contextKey = "deleteFolderInput"
+	DownloadInputKey     СontextKey = "downloadInput"
+	VideoIDInputKey      СontextKey = "videoIDInput"
+	CreateFolderInputKey СontextKey = "createFolderInput"
+	RenameFolderInputKey СontextKey = "renameFolderInput"
+	MoveFolderInputKey   СontextKey = "moveFolderInput"
+	DeleteFolderInputKey СontextKey = "deleteFolderInput"
 
 	ErrInvalidDownloadInput     = "invalid download input body"
 	MesInvalidDownloadInput     = "fields url, folder_id and type are required and can't be empty, field url must be url format, field folder_id must be object id, field type can be 'general' or 'youtube', field quality can be empty or one of 2160p 1440p 1080p 720p 480p 360p 240p 144p best"
