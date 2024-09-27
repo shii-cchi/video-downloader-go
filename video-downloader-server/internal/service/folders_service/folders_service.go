@@ -17,8 +17,11 @@ type FoldersRepo interface {
 	UpdateNameByID(ctx context.Context, folderID primitive.ObjectID, newFolderName string) error
 	Move(ctx context.Context, folderID primitive.ObjectID, parentDirID primitive.ObjectID) error
 	GetNameByID(ctx context.Context, folderID primitive.ObjectID) (string, error)
-	Delete(ctx context.Context, folderID primitive.ObjectID) error
-	GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error)
+	GetAllNestedFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]primitive.ObjectID, error)
+	DeleteAllNestedFolders(ctx context.Context, foldersID []primitive.ObjectID) error
+
+	//Delete(ctx context.Context, folderID primitive.ObjectID) error
+	//GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error)
 }
 
 type Videos interface {
@@ -117,9 +120,16 @@ func (f *FoldersService) Delete(deleteFolderInput folder_dto.DeleteFolderDto) er
 		return err
 	}
 
-	var foldersID []primitive.ObjectID
+	allFolders, err := f.repo.GetAllNestedFolders(context.Background(), deleteFolderInput.ID)
+	if err != nil {
+		return err
+	}
 
-	if err := f.deleteFolder(deleteFolderInput.ID, &foldersID); err != nil {
+	var foldersID []primitive.ObjectID
+	foldersID = append(foldersID, deleteFolderInput.ID)
+	foldersID = append(foldersID, allFolders...)
+
+	if err := f.repo.DeleteAllNestedFolders(context.Background(), foldersID); err != nil {
 		return err
 	}
 
@@ -151,27 +161,6 @@ func (f *FoldersService) checkFolderExistenceByName(folderName string, parentDir
 
 	if err == nil {
 		return errors.New(domain.ErrFolderAlreadyExist)
-	}
-
-	return nil
-}
-
-func (f *FoldersService) deleteFolder(folderID primitive.ObjectID, foldersID *[]primitive.ObjectID) error {
-	if err := f.repo.Delete(context.Background(), folderID); err != nil {
-		return fmt.Errorf(domain.ErrDeletingFolder+": %w", err)
-	}
-
-	*foldersID = append(*foldersID, folderID)
-
-	folders, err := f.repo.GetFolders(context.Background(), folderID)
-	if err != nil {
-		return fmt.Errorf(domain.ErrGettingFoldersList+": %w", err)
-	}
-
-	for _, folder := range folders {
-		if err := f.deleteFolder(folder.ID, foldersID); err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -41,8 +41,9 @@ const (
 	ErrInvalidRangeStart  = "invalid start of range"
 	ErrInvalidRangeEnd    = "invalid end of range"
 	ErrInvalidRange       = "invalid range"
-	ErrDeletingVideo      = "error deleting video"
-	ErrGettingRealPath    = "error getting real video path"
+	ErrGettingPaths       = "error getting real videos and previews paths"
+	ErrDeletingVideo      = "error deleting video with path"
+	ErrDeletingPreview    = "error deleting preview with path"
 )
 
 // folder service

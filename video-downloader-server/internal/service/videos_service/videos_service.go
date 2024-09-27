@@ -15,12 +15,15 @@ import (
 
 type VideosRepo interface {
 	Create(ctx context.Context, video domain.Video) error
-	Delete(ctx context.Context, folderID primitive.ObjectID) error
-	GetRealPaths(ctx context.Context, folderID primitive.ObjectID) ([]string, []string, error)
+	GetPathsByFolders(ctx context.Context, foldersID []primitive.ObjectID) ([]string, []string, error)
+	DeleteVideos(ctx context.Context, foldersID []primitive.ObjectID) error
+
+	//Delete(ctx context.Context, folderID primitive.ObjectID) error
 }
 
 type Preview interface {
 	CreatePreview(videoName string, realPath string) (string, error)
+	DeletePreviews(paths []string) error
 }
 
 type VideoDownloadStrategy interface {
@@ -104,24 +107,24 @@ func (v *VideosService) GetVideoRangeInfo(videoID string, rangeHeader string) (d
 }
 
 func (v *VideosService) DeleteVideos(foldersID []primitive.ObjectID) error {
-	for _, folderID := range foldersID {
-		realPaths, previewPaths, err := v.repo.GetRealPaths(context.Background(), folderID)
-		if err != nil {
-			return fmt.Errorf(domain.ErrGettingRealPath+": %w", err)
-		}
+	realPaths, previewPaths, err := v.repo.GetPathsByFolders(context.Background(), foldersID)
+	if err != nil {
+		return fmt.Errorf(domain.ErrGettingPaths+": %w", err)
+	}
 
-		for _, realPath := range realPaths {
-			os.Remove(filepath.Join(domain.CommonVideoDir, realPath))
-		}
+	err = v.repo.DeleteVideos(context.Background(), foldersID)
+	if err != nil {
+		return fmt.Errorf(domain.ErrDeletingVideo+": %w", err)
+	}
 
-		for _, previewPath := range previewPaths {
-			os.Remove(filepath.Join(domain.CommonPreviewDir, previewPath))
+	for _, realPath := range realPaths {
+		if err := os.Remove(filepath.Join(domain.CommonVideoDir, realPath)); err != nil {
+			return fmt.Errorf(domain.ErrDeletingVideo+" %s: %w", realPath, err)
 		}
+	}
 
-		err = v.repo.Delete(context.Background(), folderID)
-		if err != nil {
-			return fmt.Errorf(domain.ErrDeletingVideo+": %w", err)
-		}
+	if err := v.previewService.DeletePreviews(previewPaths); err != nil {
+		return err
 	}
 
 	return nil

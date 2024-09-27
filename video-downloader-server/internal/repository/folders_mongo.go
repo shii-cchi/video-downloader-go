@@ -97,42 +97,112 @@ func (r *FoldersRepo) GetNameByID(ctx context.Context, folderID primitive.Object
 	return folder.FolderName, nil
 }
 
-func (r *FoldersRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
-	filter := bson.M{"_id": folderID}
-
-	result, err := r.db.DeleteOne(ctx, filter)
-	if err != nil {
-		return err
+func (r *FoldersRepo) GetAllNestedFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	pipeline := mongo.Pipeline{
+		{
+			{"$match", bson.D{{"parent_dir_id", parentDirID}}},
+		},
+		{
+			{"$graphLookup", bson.D{
+				{"from", "folders"},
+				{"startWith", "$_id"},
+				{"connectFromField", "_id"},
+				{"connectToField", "parent_dir_id"},
+				{"as", "nestedFolders"},
+			}},
+		},
+		{
+			{"$project", bson.D{
+				{"allFolderIds", bson.D{
+					{"$setUnion", bson.A{
+						bson.A{bson.D{{"$toObjectId", "$_id"}}},
+						bson.D{
+							{"$map", bson.D{
+								{"input", "$nestedFolders"},
+								{"as", "folder"},
+								{"in", "$$folder._id"},
+							}},
+						},
+					}},
+				}},
+			}},
+		},
+		{
+			{"$unwind", bson.D{{"path", "$allFolderIds"}}},
+		},
+		{
+			{"$project", bson.D{
+				{"_id", "$allFolderIds"},
+			}},
+		},
 	}
 
-	if result.DeletedCount == 0 {
-		return mongo.ErrNoDocuments
-	}
-
-	return nil
-}
-
-func (r *FoldersRepo) GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error) {
-	filter := bson.M{"parent_dir_id": parentDirID}
-
-	cursor, err := r.db.Find(ctx, filter)
+	cursor, err := r.db.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var folders []domain.Folder
-	for cursor.Next(ctx) {
-		var folder domain.Folder
-		if err := cursor.Decode(&folder); err != nil {
-			return nil, err
-		}
-		folders = append(folders, folder)
-	}
-
-	if err := cursor.Err(); err != nil {
+	if err := cursor.All(ctx, &folders); err != nil {
 		return nil, err
 	}
 
-	return folders, nil
+	var results []primitive.ObjectID
+	for _, folder := range folders {
+		results = append(results, folder.ID)
+	}
+
+	return results, nil
 }
+
+func (r *FoldersRepo) DeleteAllNestedFolders(ctx context.Context, foldersID []primitive.ObjectID) error {
+	filter := bson.M{"_id": bson.M{"$in": foldersID}}
+
+	_, err := r.db.DeleteMany(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//func (r *FoldersRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
+//	filter := bson.M{"_id": folderID}
+//
+//	result, err := r.db.DeleteOne(ctx, filter)
+//	if err != nil {
+//		return err
+//	}
+//
+//	if result.DeletedCount == 0 {
+//		return mongo.ErrNoDocuments
+//	}
+//
+//	return nil
+//}
+//
+//func (r *FoldersRepo) GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error) {
+//	filter := bson.M{"parent_dir_id": parentDirID}
+//
+//	cursor, err := r.db.Find(ctx, filter)
+//	if err != nil {
+//		return nil, err
+//	}
+//	defer cursor.Close(ctx)
+//
+//	var folders []domain.Folder
+//	for cursor.Next(ctx) {
+//		var folder domain.Folder
+//		if err := cursor.Decode(&folder); err != nil {
+//			return nil, err
+//		}
+//		folders = append(folders, folder)
+//	}
+//
+//	if err := cursor.Err(); err != nil {
+//		return nil, err
+//	}
+//
+//	return folders, nil
+//}

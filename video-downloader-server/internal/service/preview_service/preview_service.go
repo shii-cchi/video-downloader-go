@@ -3,6 +3,7 @@ package preview_service
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -40,6 +41,16 @@ func (p *PreviewService) CreatePreview(videoName string, realPath string) (strin
 	}
 
 	return filepath.Join(previewDir, videoName+domain.PreviewFormat), nil
+}
+
+func (p *PreviewService) DeletePreviews(paths []string) error {
+	for _, previewPath := range paths {
+		if err := os.Remove(filepath.Join(domain.CommonPreviewDir, previewPath)); err != nil {
+			return fmt.Errorf(domain.ErrDeletingPreview+" %s: %w", previewPath, err)
+		}
+	}
+
+	return nil
 }
 
 func (p *PreviewService) getVideoDuration(videoPath string) (time.Duration, error) {

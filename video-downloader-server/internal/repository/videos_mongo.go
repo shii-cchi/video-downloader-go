@@ -31,8 +31,33 @@ func (r *VideosRepo) Create(ctx context.Context, video domain.Video) error {
 	return nil
 }
 
-func (r *VideosRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
-	filter := bson.M{"folder_id": folderID}
+func (r *VideosRepo) GetPathsByFolders(ctx context.Context, foldersID []primitive.ObjectID) ([]string, []string, error) {
+	filter := bson.M{"folder_id": bson.M{"$in": foldersID}}
+
+	cursor, err := r.db.Find(ctx, filter)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []domain.Video
+
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, nil, err
+	}
+
+	var realPaths, previewPaths []string
+
+	for _, result := range results {
+		realPaths = append(realPaths, result.RealPath)
+		previewPaths = append(previewPaths, result.PreviewPath)
+	}
+
+	return realPaths, previewPaths, nil
+}
+
+func (r *VideosRepo) DeleteVideos(ctx context.Context, foldersID []primitive.ObjectID) error {
+	filter := bson.M{"folder_id": bson.M{"$in": foldersID}}
 
 	_, err := r.db.DeleteMany(ctx, filter)
 	if err != nil {
@@ -42,28 +67,13 @@ func (r *VideosRepo) Delete(ctx context.Context, folderID primitive.ObjectID) er
 	return nil
 }
 
-func (r *VideosRepo) GetRealPaths(ctx context.Context, folderID primitive.ObjectID) ([]string, []string, error) {
-	filter := bson.M{"folder_id": folderID}
-
-	cursor, err := r.db.Find(ctx, filter)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var realPaths, previewPaths []string
-	for cursor.Next(ctx) {
-		var video domain.Video
-		if err := cursor.Decode(&video); err != nil {
-			return nil, nil, err
-		}
-		realPaths = append(realPaths, video.RealPath)
-		previewPaths = append(previewPaths, video.PreviewPath)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, nil, err
-	}
-
-	return realPaths, previewPaths, nil
-}
+//func (r *VideosRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
+//	filter := bson.M{"folder_id": folderID}
+//
+//	_, err := r.db.DeleteMany(ctx, filter)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}

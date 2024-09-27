@@ -4,7 +4,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"strings"
 	"video-downloader-server/internal/delivery"
@@ -17,7 +16,6 @@ type VideosService interface {
 	DownloadToServer(input video_dto.DownloadVideoDto) error
 	GetVideoFileInfo(videoID string) (domain.VideoFileInfo, error)
 	GetVideoRangeInfo(videoID string, rangeHeader string) (domain.VideoRangeInfo, error)
-	DeleteVideos(foldersID []primitive.ObjectID) error
 }
 
 type VideosHandler struct {
