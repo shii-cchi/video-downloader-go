@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"video-downloader-server/internal/delivery/dto/folder_dto"
+	"video-downloader-server/internal/delivery/dto/video_dto"
 	"video-downloader-server/internal/domain"
 )
 
@@ -19,6 +20,7 @@ type FoldersRepo interface {
 	GetNameByID(ctx context.Context, folderID primitive.ObjectID) (string, error)
 	GetAllNestedFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]primitive.ObjectID, error)
 	DeleteAllNestedFolders(ctx context.Context, foldersID []primitive.ObjectID) error
+	GetNestedFolders(ctx context.Context, folderID primitive.ObjectID) ([]domain.Folder, error)
 
 	//Delete(ctx context.Context, folderID primitive.ObjectID) error
 	//GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error)
@@ -26,6 +28,7 @@ type FoldersRepo interface {
 
 type Videos interface {
 	DeleteVideos(foldersID []primitive.ObjectID) error
+	GetVideos(folderID primitive.ObjectID) ([]video_dto.VideoDto, error)
 }
 
 type FoldersService struct {
@@ -140,6 +143,33 @@ func (f *FoldersService) Delete(deleteFolderInput folder_dto.DeleteFolderDto) er
 	return nil
 }
 
+func (f *FoldersService) Get(folderIDStr string) (folder_dto.FolderContentDto, error) {
+	folderID, err := primitive.ObjectIDFromHex(folderIDStr)
+	if err != nil {
+		return folder_dto.FolderContentDto{}, fmt.Errorf(domain.ErrConvertingToObjectID+": %w", err)
+	}
+
+	if err := f.checkFolderExistenceByID(folderID); err != nil {
+		return folder_dto.FolderContentDto{}, err
+	}
+
+	folders, err := f.repo.GetNestedFolders(context.Background(), folderID)
+	if err != nil {
+		return folder_dto.FolderContentDto{}, err
+	}
+
+	videos, err := f.videosService.GetVideos(folderID)
+	if err != nil {
+		return folder_dto.FolderContentDto{}, err
+	}
+
+	return folder_dto.FolderContentDto{
+		ID:      folderID,
+		Folders: f.toFolderContentDto(folders),
+		Videos:  videos,
+	}, nil
+}
+
 func (f *FoldersService) checkFolderExistenceByID(folderID primitive.ObjectID) error {
 	err := f.repo.CheckExistByID(context.Background(), folderID)
 	if err != nil {
@@ -164,4 +194,16 @@ func (f *FoldersService) checkFolderExistenceByName(folderName string, parentDir
 	}
 
 	return nil
+}
+
+func (f *FoldersService) toFolderContentDto(folders []domain.Folder) []folder_dto.FolderDto {
+	res := make([]folder_dto.FolderDto, len(folders))
+
+	for i, folder := range folders {
+		res[i].ID = folder.ID
+		res[i].FolderName = folder.FolderName
+		res[i].ParentDirID = &folder.ParentDirID
+	}
+
+	return res
 }

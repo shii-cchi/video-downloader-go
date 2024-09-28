@@ -44,17 +44,18 @@ const (
 	ErrGettingPaths       = "error getting real videos and previews paths"
 	ErrDeletingVideo      = "error deleting video with path"
 	ErrDeletingPreview    = "error deleting preview with path"
+	ErrVideoAlreadyExist  = "video with this name already exist"
+	ErrCheckingVideo      = "error checking video existence"
 )
 
 // folder service
 const (
-	ErrCheckingFolder     = "error checking folder exist"
-	ErrFolderAlreadyExist = "folder with this name already exist in this folder"
-	ErrCreatingFolder     = "error creating folder"
-	ErrFolderNotFound     = "folder with this ID not found"
-	ErrUpdatingFolderName = "error updating folder name"
-	ErrGettingFolderName  = "error getting folder name by id"
-	ErrMovingFolder       = "error moving folder"
-	ErrDeletingFolder     = "error deleting folder"
-	ErrGettingFoldersList = "error getting folders list"
+	ErrCheckingFolder       = "error checking folder exist"
+	ErrFolderAlreadyExist   = "folder with this name already exist in this folder"
+	ErrCreatingFolder       = "error creating folder"
+	ErrFolderNotFound       = "folder with this ID not found"
+	ErrUpdatingFolderName   = "error updating folder name"
+	ErrGettingFolderName    = "error getting folder name by id"
+	ErrMovingFolder         = "error moving folder"
+	ErrConvertingToObjectID = "error converting str to object id"
 )

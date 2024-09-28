@@ -22,10 +22,10 @@ import (
 //}
 
 type ValidatableDto interface {
-	video_dto.DownloadVideoDto | folder_dto.CreateFolderDto | folder_dto.RenameFolderDto | folder_dto.MoveFolderDto | folder_dto.DeleteFolderDto
+	video_dto.DownloadVideoDto | video_dto.RenameVideoDto | video_dto.MoveVideoDto | video_dto.DeleteVideoDto | folder_dto.CreateFolderDto | folder_dto.RenameFolderDto | folder_dto.MoveFolderDto | folder_dto.DeleteFolderDto
 }
 
-func validateInput[V ValidatableDto](validate *validator.Validate, input V, ctxKey delivery.СontextKey, errInvalidInput, errMessage string) func(next http.Handler) http.Handler {
+func validateInput[V ValidatableDto](validate *validator.Validate, input V, ctxKey delivery.ContextKey, errInvalidInput, errMessage string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -46,8 +46,20 @@ func validateInput[V ValidatableDto](validate *validator.Validate, input V, ctxK
 	}
 }
 
-func ValidateVideoDownloadInput(v *validator.Validate) func(next http.Handler) http.Handler {
-	return validateInput(v, video_dto.DownloadVideoDto{}, delivery.DownloadInputKey, delivery.ErrInvalidDownloadInput, delivery.MesInvalidDownloadInput)
+func ValidateDownloadVideoInput(v *validator.Validate) func(next http.Handler) http.Handler {
+	return validateInput(v, video_dto.DownloadVideoDto{}, delivery.DownloadVideoInputKey, delivery.ErrInvalidDownloadVideoInput, delivery.MesInvalidDownloadVideoInput)
+}
+
+func ValidateRenameVideoInput(v *validator.Validate) func(next http.Handler) http.Handler {
+	return validateInput(v, video_dto.RenameVideoDto{}, delivery.RenameVideoInputKey, delivery.ErrInvalidRenameVideoInput, delivery.MesInvalidRenameVideoInput)
+}
+
+func ValidateMoveVideoInput(v *validator.Validate) func(next http.Handler) http.Handler {
+	return validateInput(v, video_dto.MoveVideoDto{}, delivery.MoveVideoInputKey, delivery.ErrInvalidMoveVideoInput, delivery.MesInvalidMoveVideoInput)
+}
+
+func ValidateDeleteVideoInput(v *validator.Validate) func(next http.Handler) http.Handler {
+	return validateInput(v, video_dto.DeleteVideoDto{}, delivery.DeleteVideoInputKey, delivery.ErrInvalidDeleteVideoInput, delivery.MesInvalidDeleteVideoInput)
 }
 
 func ValidateCreateFolderInput(v *validator.Validate) func(next http.Handler) http.Handler {
@@ -66,16 +78,26 @@ func ValidateDeleteFolderInput(v *validator.Validate) func(http.Handler) http.Ha
 	return validateInput(v, folder_dto.DeleteFolderDto{}, delivery.DeleteFolderInputKey, delivery.ErrInvalidDeleteFolderInput, delivery.MesInvalidDeleteFolderInput)
 }
 
-func ValidateVideoIDInput(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		videoID := r.URL.Query().Get("id")
-		if videoID == "" {
-			log.Error(delivery.ErrInvalidVideoIDInput)
-			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrInvalidVideoIDInput, Message: delivery.MesInvalidVideoIDInput})
-			return
-		}
+func validateIDInput(paramName string, ctxKey delivery.ContextKey, errInvalidInput, errMessage string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			paramValue := r.URL.Query().Get(paramName)
+			if paramValue == "" {
+				log.Error(errInvalidInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: errInvalidInput, Message: errMessage})
+				return
+			}
 
-		ctx := context.WithValue(r.Context(), delivery.VideoIDInputKey, videoID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			ctx := context.WithValue(r.Context(), ctxKey, paramValue)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func ValidateVideoIDInput(next http.Handler) http.Handler {
+	return validateIDInput("video_id", delivery.VideoIDInputKey, delivery.ErrInvalidVideoIDInput, delivery.MesInvalidVideoIDInput)(next)
+}
+
+func ValidateFolderIDInput(next http.Handler) http.Handler {
+	return validateIDInput("folder_id", delivery.FolderIDInputKey, delivery.ErrInvalidFolderIDInput, delivery.MesInvalidFolderIDInput)(next)
 }

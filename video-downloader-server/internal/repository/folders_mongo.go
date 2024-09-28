@@ -167,6 +167,23 @@ func (r *FoldersRepo) DeleteAllNestedFolders(ctx context.Context, foldersID []pr
 	return nil
 }
 
+func (r *FoldersRepo) GetNestedFolders(ctx context.Context, folderID primitive.ObjectID) ([]domain.Folder, error) {
+	filter := bson.M{"parent_dir_id": folderID}
+
+	cursor, err := r.db.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var folders []domain.Folder
+	if err := cursor.All(ctx, &folders); err != nil {
+		return nil, err
+	}
+
+	return folders, nil
+}
+
 //func (r *FoldersRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
 //	filter := bson.M{"_id": folderID}
 //
