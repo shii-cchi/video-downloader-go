@@ -136,10 +136,10 @@ func (h VideosHandler) moveVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if strings.HasPrefix(err.Error(), domain.ErrFolderNotFound) {
-			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrMovingVideo, Message: domain.ErrFolderNotFound})
-			return
-		}
+		//if strings.HasPrefix(err.Error(), domain.ErrFolderNotFound) {
+		//	delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrMovingVideo, Message: domain.ErrFolderNotFound})
+		//	return
+		//}
 
 		if strings.HasPrefix(err.Error(), domain.ErrVideoAlreadyExist) {
 			delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: delivery.ErrMovingVideo, Message: domain.ErrVideoAlreadyExist})

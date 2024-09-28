@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"video-downloader-server/internal/domain"
 )
 
@@ -22,79 +23,63 @@ func NewFoldersRepo(db *mongo.Database) *FoldersRepo {
 	}
 }
 
-func (r *FoldersRepo) Create(ctx context.Context, folder domain.Folder) (domain.Folder, error) {
-	doc := bson.M{"folder_name": folder.FolderName}
-
-	if folder.ParentDirID != primitive.NilObjectID {
-		doc["parent_dir_id"] = folder.ParentDirID
-	}
-
-	folderID, err := r.db.InsertOne(ctx, doc)
-	if err != nil {
-		return domain.Folder{}, err
-	}
-
-	folder.ID = folderID.InsertedID.(primitive.ObjectID)
-
-	return folder, nil
+func (r *FoldersRepo) CheckExistenceByID(ctx context.Context, folderID primitive.ObjectID) error {
+	return r.db.FindOne(ctx, bson.M{"_id": folderID}).Err()
 }
 
-func (r *FoldersRepo) CheckExistByName(ctx context.Context, folderName string, parentDirID primitive.ObjectID) error {
+func (r *FoldersRepo) CheckExistenceByName(ctx context.Context, folderName string, parentDirID primitive.ObjectID) error {
 	filter := bson.M{"folder_name": folderName}
 
 	if parentDirID != primitive.NilObjectID {
 		filter["parent_dir_id"] = parentDirID
 	}
 
-	res := r.db.FindOne(ctx, filter)
-	return res.Err()
+	return r.db.FindOne(ctx, filter).Err()
 }
 
-func (r *FoldersRepo) CheckExistByID(ctx context.Context, folderID primitive.ObjectID) error {
-	filter := bson.M{"_id": folderID}
+func (r *FoldersRepo) Create(ctx context.Context, folderName string, parentDirID primitive.ObjectID) (primitive.ObjectID, error) {
+	doc := bson.M{"folder_name": folderName}
 
-	res := r.db.FindOne(ctx, filter)
-	return res.Err()
-}
+	if parentDirID != primitive.NilObjectID {
+		doc["parent_dir_id"] = parentDirID
+	}
 
-func (r *FoldersRepo) UpdateNameByID(ctx context.Context, folderID primitive.ObjectID, newFolderName string) error {
-	filter := bson.M{"_id": folderID}
-	update := bson.M{"$set": bson.M{"folder_name": newFolderName}}
-
-	result, err := r.db.UpdateOne(ctx, filter, update)
+	res, err := r.db.InsertOne(ctx, doc)
 	if err != nil {
-		return err
+		return primitive.NilObjectID, err
 	}
 
-	if result.MatchedCount == 0 {
-		return mongo.ErrNoDocuments
-	}
-
-	return nil
+	return res.InsertedID.(primitive.ObjectID), nil
 }
 
-func (r *FoldersRepo) Move(ctx context.Context, folderID primitive.ObjectID, parentDirID primitive.ObjectID) error {
-	filter := bson.M{"_id": folderID}
-	update := bson.M{"$set": bson.M{"parent_dir_id": parentDirID}}
+func (r *FoldersRepo) GetParentDirID(ctx context.Context, folderID primitive.ObjectID) (primitive.ObjectID, error) {
+	var folder domain.Folder
 
-	_, err := r.db.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return err
+	if err := r.db.FindOne(ctx, bson.M{"_id": folderID}, options.FindOne().SetProjection(bson.M{"parent_dir_id": 1, "_id": 0})).Decode(&folder); err != nil {
+		return primitive.NilObjectID, err
 	}
 
-	return nil
+	return folder.ParentDirID, nil
 }
 
-func (r *FoldersRepo) GetNameByID(ctx context.Context, folderID primitive.ObjectID) (string, error) {
-	folder := domain.Folder{}
-	filter := bson.M{"_id": folderID}
+func (r *FoldersRepo) UpdateName(ctx context.Context, folderID primitive.ObjectID, newFolderName string) error {
+	_, err := r.db.UpdateOne(ctx, bson.M{"_id": folderID}, bson.M{"$set": bson.M{"folder_name": newFolderName}})
+	return err
+}
 
-	res := r.db.FindOne(ctx, filter).Decode(&folder)
-	if res != nil {
-		return "", res
+func (r *FoldersRepo) GetName(ctx context.Context, folderID primitive.ObjectID) (string, error) {
+	var folder domain.Folder
+
+	if err := r.db.FindOne(ctx, bson.M{"_id": folderID}, options.FindOne().SetProjection(bson.M{"folder_name": 1, "_id": 0})).Decode(&folder); err != nil {
+		return "", err
 	}
 
 	return folder.FolderName, nil
+}
+
+func (r *FoldersRepo) Move(ctx context.Context, folderID primitive.ObjectID, parentDirID primitive.ObjectID) error {
+	_, err := r.db.UpdateOne(ctx, bson.M{"_id": folderID}, bson.M{"$set": bson.M{"parent_dir_id": parentDirID}})
+	return err
 }
 
 func (r *FoldersRepo) GetAllNestedFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]primitive.ObjectID, error) {
@@ -143,83 +128,47 @@ func (r *FoldersRepo) GetAllNestedFolders(ctx context.Context, parentDirID primi
 	}
 	defer cursor.Close(ctx)
 
-	var folders []domain.Folder
-	if err := cursor.All(ctx, &folders); err != nil {
-		return nil, err
+	var folder domain.Folder
+	var results []primitive.ObjectID
+
+	for cursor.Next(ctx) {
+		if err := cursor.Decode(&folder); err != nil {
+			return nil, err
+		}
+		results = append(results, folder.ID)
 	}
 
-	var results []primitive.ObjectID
-	for _, folder := range folders {
-		results = append(results, folder.ID)
+	if err := cursor.Err(); err != nil {
+		return nil, err
 	}
 
 	return results, nil
 }
 
 func (r *FoldersRepo) DeleteAllNestedFolders(ctx context.Context, foldersID []primitive.ObjectID) error {
-	filter := bson.M{"_id": bson.M{"$in": foldersID}}
-
-	_, err := r.db.DeleteMany(ctx, filter)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := r.db.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": foldersID}})
+	return err
 }
 
 func (r *FoldersRepo) GetNestedFolders(ctx context.Context, folderID primitive.ObjectID) ([]domain.Folder, error) {
-	filter := bson.M{"parent_dir_id": folderID}
-
-	cursor, err := r.db.Find(ctx, filter)
+	cursor, err := r.db.Find(ctx, bson.M{"parent_dir_id": folderID})
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
+	var folder domain.Folder
 	var folders []domain.Folder
-	if err := cursor.All(ctx, &folders); err != nil {
+	for cursor.Next(ctx) {
+		if err := cursor.Decode(&folder); err != nil {
+			return nil, err
+		}
+		folders = append(folders, folder)
+	}
+
+	if err := cursor.Err(); err != nil {
 		return nil, err
 	}
 
 	return folders, nil
 }
-
-//func (r *FoldersRepo) Delete(ctx context.Context, folderID primitive.ObjectID) error {
-//	filter := bson.M{"_id": folderID}
-//
-//	result, err := r.db.DeleteOne(ctx, filter)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if result.DeletedCount == 0 {
-//		return mongo.ErrNoDocuments
-//	}
-//
-//	return nil
-//}
-//
-//func (r *FoldersRepo) GetFolders(ctx context.Context, parentDirID primitive.ObjectID) ([]domain.Folder, error) {
-//	filter := bson.M{"parent_dir_id": parentDirID}
-//
-//	cursor, err := r.db.Find(ctx, filter)
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer cursor.Close(ctx)
-//
-//	var folders []domain.Folder
-//	for cursor.Next(ctx) {
-//		var folder domain.Folder
-//		if err := cursor.Decode(&folder); err != nil {
-//			return nil, err
-//		}
-//		folders = append(folders, folder)
-//	}
-//
-//	if err := cursor.Err(); err != nil {
-//		return nil, err
-//	}
-//
-//	return folders, nil
-//}

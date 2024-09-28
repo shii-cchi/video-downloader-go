@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 // common service
 const (
 	ErrCreatingDir     = "error creating directory"
@@ -49,13 +51,16 @@ const (
 )
 
 // folder service
-const (
-	ErrCheckingFolder       = "error checking folder exist"
-	ErrFolderAlreadyExist   = "folder with this name already exist in this folder"
-	ErrCreatingFolder       = "error creating folder"
-	ErrFolderNotFound       = "folder with this ID not found"
-	ErrUpdatingFolderName   = "error updating folder name"
-	ErrGettingFolderName    = "error getting folder name by id"
-	ErrMovingFolder         = "error moving folder"
-	ErrConvertingToObjectID = "error converting str to object id"
+var (
+	ErrCheckingFolder           = errors.New("error checking folder exist")
+	ErrFolderNotFound           = errors.New("folder with this ID not found")
+	ErrFolderAlreadyExist       = errors.New("folder with this name already exist in this folder")
+	ErrCreatingFolder           = errors.New("error creating folder")
+	ErrRenamingFolder           = errors.New("error renaming folder")
+	ErrGettingFolderName        = errors.New("error getting folder name by id")
+	ErrMovingFolder             = errors.New("error moving folder")
+	ErrGettingAllNestedFolders  = errors.New("error getting all nested folders")
+	ErrDeletingAllNestedFolders = errors.New("error deleting all nested folders")
+	ErrConvertingToObjectID     = errors.New("error converting str to object id")
+	ErrGettingNestedFolders     = errors.New("error getting nested folders")
 )

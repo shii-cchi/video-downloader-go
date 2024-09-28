@@ -4,19 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"video-downloader-server/internal/domain"
 )
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	data, err := json.Marshal(payload)
-
-	if err != nil {
-		log.Printf(ErrMarshalingJSON+": %v", payload)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	data, _ := json.Marshal(payload)
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
