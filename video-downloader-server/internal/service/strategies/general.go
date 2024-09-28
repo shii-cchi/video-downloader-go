@@ -34,5 +34,5 @@ func (s GeneralDownloadStrategy) Download(videoURL string, quality string) (stri
 		return "", "", err
 	}
 
-	return strings.TrimSuffix(videoName, filepath.Ext(videoName)), filepath.Join(realPath, videoName), nil
+	return strings.TrimSuffix(filepath.Base(videoURL), filepath.Ext(videoName)), filepath.Join(realPath, videoName), nil
 }

@@ -50,7 +50,7 @@ func (s YouTubeDownloadStrategy) Download(videoURL string, quality string) (stri
 		return "", "", err
 	}
 
-	return fmt.Sprintf("%s %s", videoName, format.QualityLabel), filepath.Join(realPath, fmt.Sprintf("%s %s%s", videoName, format.QualityLabel, domain.VideoFormat)), err
+	return fmt.Sprintf("%s %s", video.Title, format.QualityLabel), filepath.Join(realPath, fmt.Sprintf("%s %s%s", videoName, format.QualityLabel, domain.VideoFormat)), err
 }
 
 func (s YouTubeDownloadStrategy) getVideoID(videoURL string) (string, error) {

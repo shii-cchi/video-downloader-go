@@ -27,6 +27,7 @@ func (p *PreviewService) CreatePreview(videoName string, realPath string) (strin
 	}
 
 	videoPath := filepath.Join(domain.CommonVideoDir, realPath)
+	videoName = common.ReplaceSpecialSymbols(videoName)
 	previewPath := filepath.Join(domain.CommonPreviewDir, previewDir, videoName+domain.PreviewFormat)
 
 	videoDuration, err := p.getVideoDuration(videoPath)
