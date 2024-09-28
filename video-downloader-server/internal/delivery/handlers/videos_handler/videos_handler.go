@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"video-downloader-server/internal/delivery"
 	"video-downloader-server/internal/delivery/dto/video_dto"
@@ -14,8 +15,8 @@ import (
 
 type VideosService interface {
 	DownloadToServer(downloadVideoInput video_dto.DownloadVideoDto) error
-	GetVideoFileInfo(videoIDStr string) (video_dto.VideoFileInfoDto, error)
-	GetVideoRangeInfo(videoID string, rangeHeader string) (video_dto.VideoRangeInfoDto, error)
+	GetVideoFileInfo(videoID primitive.ObjectID) (video_dto.VideoFileInfoDto, error)
+	GetVideoRangeInfo(videoID primitive.ObjectID, rangeHeader string) (video_dto.VideoRangeInfoDto, error)
 	Rename(renameVideoInput video_dto.RenameVideoDto) (video_dto.VideoDto, error)
 	Move(moveVideoInput video_dto.MoveVideoDto) (video_dto.VideoDto, error)
 	Delete(deleteVideoInput video_dto.DeleteVideoDto) error
@@ -65,7 +66,7 @@ func (h VideosHandler) downloadVideoToServer(w http.ResponseWriter, r *http.Requ
 }
 
 func (h VideosHandler) downloadVideoToLocal(w http.ResponseWriter, r *http.Request) {
-	videoID := r.Context().Value(delivery.VideoIDInputKey).(string)
+	videoID := r.Context().Value(delivery.VideoIDInputKey).(primitive.ObjectID)
 
 	videoInfo, err := h.videosService.GetVideoFileInfo(videoID)
 	if err != nil {
@@ -84,7 +85,7 @@ func (h VideosHandler) downloadVideoToLocal(w http.ResponseWriter, r *http.Reque
 }
 
 func (h VideosHandler) streamVideo(w http.ResponseWriter, r *http.Request) {
-	videoID := r.Context().Value(delivery.VideoIDInputKey).(string)
+	videoID := r.Context().Value(delivery.VideoIDInputKey).(primitive.ObjectID)
 	rangeHeader := r.Header.Get("Range")
 
 	videoRangeInfo, err := h.videosService.GetVideoRangeInfo(videoID, rangeHeader)

@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"video-downloader-server/internal/delivery"
 	"video-downloader-server/internal/delivery/dto/folder_dto"
@@ -17,7 +18,7 @@ type FoldersService interface {
 	Rename(renameFolderInput folder_dto.RenameFolderDto) (folder_dto.FolderDto, error)
 	Move(moveFolderInput folder_dto.MoveFolderDto) (folder_dto.FolderDto, error)
 	Delete(deleteFolderInput folder_dto.DeleteFolderDto) error
-	Get(folderID string) (folder_dto.FolderContentDto, error)
+	Get(folderID primitive.ObjectID) (folder_dto.FolderContentDto, error)
 }
 
 type FoldersHandler struct {
@@ -131,7 +132,7 @@ func (f FoldersHandler) deleteFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f FoldersHandler) getFolders(w http.ResponseWriter, r *http.Request) {
-	folderID := r.Context().Value(delivery.FolderIDInputKey).(string)
+	folderID := r.Context().Value(delivery.FolderIDInputKey).(primitive.ObjectID)
 
 	folderContent, err := f.foldersService.Get(folderID)
 	if err != nil {

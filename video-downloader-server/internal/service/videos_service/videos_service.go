@@ -83,12 +83,7 @@ func (v *VideosService) DownloadToServer(downloadVideoInput video_dto.DownloadVi
 	return nil
 }
 
-func (v *VideosService) GetVideoFileInfo(videoIDStr string) (video_dto.VideoFileInfoDto, error) {
-	videoID, err := primitive.ObjectIDFromHex(videoIDStr)
-	if err != nil {
-		return video_dto.VideoFileInfoDto{}, fmt.Errorf("%w (video id: %s): %s", domain.ErrConvertingToObjectID, videoIDStr, err)
-	}
-
+func (v *VideosService) GetVideoFileInfo(videoID primitive.ObjectID) (video_dto.VideoFileInfoDto, error) {
 	videoRealPath, err := v.repo.GetRealPath(context.Background(), videoID)
 	if err != nil {
 		return video_dto.VideoFileInfoDto{}, fmt.Errorf("%w (video id: %s): %s", domain.ErrGettingRealVideoPath, videoID, err)
@@ -113,7 +108,7 @@ func (v *VideosService) GetVideoFileInfo(videoIDStr string) (video_dto.VideoFile
 	}, nil
 }
 
-func (v *VideosService) GetVideoRangeInfo(videoID string, rangeHeader string) (video_dto.VideoRangeInfoDto, error) {
+func (v *VideosService) GetVideoRangeInfo(videoID primitive.ObjectID, rangeHeader string) (video_dto.VideoRangeInfoDto, error) {
 	videoFileInfo, err := v.GetVideoFileInfo(videoID)
 
 	rangeStart, rangeEnd, err := v.parseRangeHeader(rangeHeader, videoFileInfo.FileSize)

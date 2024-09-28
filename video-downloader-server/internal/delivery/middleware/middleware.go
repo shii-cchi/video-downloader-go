@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"video-downloader-server/internal/delivery"
 	"video-downloader-server/internal/delivery/dto/folder_dto"
@@ -81,14 +82,21 @@ func ValidateDeleteFolderInput(v *validator.Validate) func(http.Handler) http.Ha
 func validateIDInput(paramName string, ctxKey delivery.ContextKey, errInvalidInput, errMessage string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			paramValue := r.URL.Query().Get(paramName)
-			if paramValue == "" {
+			paramValueStr := r.URL.Query().Get(paramName)
+			if paramValueStr == "" {
+				log.Error(errInvalidInput)
+				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: errInvalidInput, Message: delivery.ErrEmptyIDParam})
+				return
+			}
+
+			paramValueID, err := primitive.ObjectIDFromHex(paramValueStr)
+			if err != nil {
 				log.Error(errInvalidInput)
 				delivery.RespondWithJSON(w, http.StatusBadRequest, delivery.JsonError{Error: errInvalidInput, Message: errMessage})
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ctxKey, paramValue)
+			ctx := context.WithValue(r.Context(), ctxKey, paramValueID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

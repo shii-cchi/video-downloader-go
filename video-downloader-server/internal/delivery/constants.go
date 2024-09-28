@@ -38,9 +38,10 @@ const (
 	ErrInvalidDeleteFolderInput  = "invalid delete folder input body"
 	MesInvalidDeleteFolderInput  = "field id are required, can't be empty and must be valid object id"
 	ErrInvalidVideoIDInput       = "invalid video id input"
-	MesInvalidVideoIDInput       = "video id param is required"
+	MesInvalidVideoIDInput       = "video id param must be valid object id"
 	ErrInvalidFolderIDInput      = "invalid folder id input"
-	MesInvalidFolderIDInput      = "folder_id param is required"
+	MesInvalidFolderIDInput      = "folder_id param must be valid object id"
+	ErrEmptyIDParam              = "empty id param"
 	MesInvalidJSON               = "invalid JSON body"
 )
 

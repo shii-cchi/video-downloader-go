@@ -68,6 +68,5 @@ var (
 	ErrMovingFolder             = errors.New("error moving folder")
 	ErrGettingAllNestedFolders  = errors.New("error getting all nested folders")
 	ErrDeletingAllNestedFolders = errors.New("error deleting all nested folders")
-	ErrConvertingToObjectID     = errors.New("error converting str to object id")
 	ErrGettingNestedFolders     = errors.New("error getting nested folders")
 )

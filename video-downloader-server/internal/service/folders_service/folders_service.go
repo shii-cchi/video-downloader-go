@@ -146,12 +146,7 @@ func (f *FoldersService) Delete(deleteFolderInput folder_dto.DeleteFolderDto) er
 	return nil
 }
 
-func (f *FoldersService) Get(folderIDStr string) (folder_dto.FolderContentDto, error) {
-	folderID, err := primitive.ObjectIDFromHex(folderIDStr)
-	if err != nil {
-		return folder_dto.FolderContentDto{}, fmt.Errorf("%w: %s", domain.ErrConvertingToObjectID, err)
-	}
-
+func (f *FoldersService) Get(folderID primitive.ObjectID) (folder_dto.FolderContentDto, error) {
 	if err := f.checkFolderExistenceByID(folderID); err != nil {
 		return folder_dto.FolderContentDto{}, err
 	}
