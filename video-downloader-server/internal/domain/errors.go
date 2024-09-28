@@ -3,51 +3,58 @@ package domain
 import "errors"
 
 // common service
-const (
-	ErrCreatingDir     = "error creating directory"
-	ErrGeneratingBytes = "error generating random bytes"
-
-	ErrCreatingFile     = "error creating file for saving video"
-	ErrSavingDataToFile = "error saving data to file"
+var (
+	ErrCreatingDir      = errors.New("error creating directory")
+	ErrGeneratingBytes  = errors.New("error generating random bytes")
+	ErrCreatingFile     = errors.New("error creating file for saving video")
+	ErrSavingDataToFile = errors.New("error saving data to file")
 )
 
 // preview service
-const (
-	ErrGettingVideoDuration = "error getting video duration"
-	ErrParsingVideoDuration = "error parsing video duration"
-	ErrGeneratingPreview    = "error generating preview"
+var (
+	ErrGettingVideoDuration = errors.New("error getting video duration")
+	ErrParsingVideoDuration = errors.New("error parsing video duration")
+	ErrGeneratingPreview    = errors.New("error generating preview")
+	ErrDeletingPreview      = errors.New("error deleting preview")
 )
 
 // general strategy
-const (
-	ErrSendingReq       = "error sending get request by downloading from general player"
-	ErrDownloadingVideo = "error failed to download video from general player with status code:"
+var (
+	ErrSendingReq       = errors.New("error sending get request for downloading from general player")
+	ErrDownloadingVideo = errors.New("error failed to download video from general player")
 )
 
 // youtube strategy
-const (
-	ErrParsingURL       = "failed to parse VideoURL"
-	ErrNotFoundVideoID  = "videoID not found in url"
-	ErrFetchingMetadata = "error fetching video metadata"
-	ErrGettingStream    = "error getting stream"
-	ErrMerging          = "error merging video and audio"
+var (
+	ErrParsingURL       = errors.New("failed to parse VideoURL")
+	ErrNotFoundVideoID  = errors.New("videoID not found in url")
+	ErrFetchingMetadata = errors.New("error fetching video metadata")
+	ErrGettingStream    = errors.New("error getting stream")
+	ErrMerging          = errors.New("error merging video and audio")
+	ErrDeletingTmpFiles = errors.New("error geleting tmp files")
 )
 
 // videos service
-const (
-	ErrVideoNotFound      = "video not found"
-	ErrGettingFileInfo    = "err getting file info"
-	ErrInvalidRangeHeader = "invalid range header"
-	ErrInvalidRangeFormat = "invalid range format"
-	ErrInvalidBytesFormat = "invalid bytes format"
-	ErrInvalidRangeStart  = "invalid start of range"
-	ErrInvalidRangeEnd    = "invalid end of range"
-	ErrInvalidRange       = "invalid range"
-	ErrGettingPaths       = "error getting real videos and previews paths"
-	ErrDeletingVideo      = "error deleting video with path"
-	ErrDeletingPreview    = "error deleting preview with path"
-	ErrVideoAlreadyExist  = "video with this name already exist"
-	ErrCheckingVideo      = "error checking video existence"
+var (
+	ErrSavingVideoToDb      = errors.New("error saving video info to db")
+	ErrGettingRealVideoPath = errors.New("error getting real video path by id")
+	ErrVideoNotFound        = errors.New("video not found")
+	ErrGettingFileInfo      = errors.New("err getting file info")
+	ErrInvalidRangeHeader   = errors.New("invalid range header")
+	ErrInvalidRangeFormat   = errors.New("invalid range format")
+	ErrInvalidBytesFormat   = errors.New("invalid bytes format")
+	ErrInvalidRangeStart    = errors.New("invalid start of range")
+	ErrInvalidRangeEnd      = errors.New("invalid end of range")
+	ErrInvalidRange         = errors.New("invalid range")
+	ErrCheckingVideo        = errors.New("error checking video existence")
+	ErrRenamingVideo        = errors.New("error renaming video")
+	ErrMovingVideo          = errors.New("error moving video")
+	ErrDeletingVideo        = errors.New("error deleting video")
+	ErrDeletingVideoFromDB  = errors.New("error deleting video from db")
+	ErrGettingPaths         = errors.New("error getting real videos and previews paths")
+	ErrGettingVideos        = errors.New("errors getting videos by folder id")
+
+	ErrVideoAlreadyExist = errors.New("video with this name already exist")
 )
 
 // folder service

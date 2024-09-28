@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"video-downloader-server/internal/domain"
+	"video-downloader-server/internal/delivery/dto/video_dto"
 )
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
@@ -16,7 +16,7 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(data)
 }
 
-func RespondWithVideoRange(w http.ResponseWriter, info domain.VideoRangeInfo) {
+func RespondWithVideoRange(w http.ResponseWriter, info video_dto.VideoRangeInfoDto) {
 	defer info.VideoInfo.VideoFile.Close()
 
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", info.RangeStart, info.RangeEnd, info.VideoInfo.FileSize))
@@ -25,10 +25,12 @@ func RespondWithVideoRange(w http.ResponseWriter, info domain.VideoRangeInfo) {
 	w.WriteHeader(http.StatusPartialContent)
 
 	info.VideoInfo.VideoFile.Seek(info.RangeStart, 0)
-	io.CopyN(w, info.VideoInfo.VideoFile, info.RangeEnd-info.RangeStart+1)
+	if _, err := io.CopyN(w, info.VideoInfo.VideoFile, info.RangeEnd-info.RangeStart+1); err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError, ErrGettingVideoRange)
+	}
 }
 
-func RespondWithVideo(w http.ResponseWriter, info domain.VideoFileInfo) {
+func RespondWithVideo(w http.ResponseWriter, info video_dto.VideoFileInfoDto) {
 	defer info.VideoFile.Close()
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+info.VideoName)

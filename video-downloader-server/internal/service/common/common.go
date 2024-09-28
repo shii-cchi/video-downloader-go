@@ -22,7 +22,7 @@ func CreateRandomDir(commonDir string) (string, error) {
 	fullDirPath := filepath.Join(commonDir, firstRandDir, secondRandDir)
 	err = os.MkdirAll(fullDirPath, os.ModePerm)
 	if err != nil {
-		return "", fmt.Errorf(domain.ErrCreatingDir+": %w", err)
+		return "", fmt.Errorf("%w (dir path: %s): %s", domain.ErrCreatingDir, fullDirPath, err)
 	}
 
 	return filepath.Join(firstRandDir, secondRandDir), nil
@@ -32,7 +32,7 @@ func generateRandomBytes(length int) ([]byte, error) {
 	randBytes := make([]byte, length)
 	_, err := crypto.Read(randBytes)
 	if err != nil {
-		return nil, fmt.Errorf(domain.ErrGeneratingBytes+": %w", err)
+		return nil, fmt.Errorf("%w: %s", domain.ErrGeneratingBytes, err)
 	}
 	return randBytes, nil
 }
@@ -47,13 +47,13 @@ func ReplaceSpecialSymbols(videoName string) string {
 func CreateAndWriteFile(filePath string, data io.ReadCloser) error {
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf(domain.ErrCreatingFile+": %w", err)
+		return fmt.Errorf("%w (filepath: %s): %s", domain.ErrCreatingFile, filePath, err)
 	}
 	defer file.Close()
 
 	_, err = io.Copy(file, data)
 	if err != nil {
-		return fmt.Errorf(domain.ErrSavingDataToFile+": %w", err)
+		return fmt.Errorf("%w (filepath: %s): %s", domain.ErrSavingDataToFile, filePath, err)
 	}
 
 	return nil

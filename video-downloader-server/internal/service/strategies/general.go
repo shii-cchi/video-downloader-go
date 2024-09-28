@@ -12,14 +12,14 @@ import (
 type GeneralDownloadStrategy struct{}
 
 func (s GeneralDownloadStrategy) Download(videoURL string, quality string) (string, string, error) {
-	resp, err := http.Get(videoURL)
+	res, err := http.Get(videoURL)
 	if err != nil {
-		return "", "", fmt.Errorf(domain.ErrSendingReq+": %w", err)
+		return "", "", fmt.Errorf("%w (video url: %s): %s", domain.ErrSendingReq, videoURL, err)
 	}
-	defer resp.Body.Close()
+	defer res.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf(domain.ErrDownloadingVideo+": %d", resp.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("%w (video url: %s, status code: %d)", domain.ErrDownloadingVideo, videoURL, res.StatusCode)
 	}
 
 	realPath, err := common.CreateRandomDir(domain.CommonVideoDir)
@@ -30,7 +30,7 @@ func (s GeneralDownloadStrategy) Download(videoURL string, quality string) (stri
 	videoName := common.ReplaceSpecialSymbols(filepath.Base(videoURL))
 	filePath := filepath.Join(domain.CommonVideoDir, realPath, videoName)
 
-	if err := common.CreateAndWriteFile(filePath, resp.Body); err != nil {
+	if err := common.CreateAndWriteFile(filePath, res.Body); err != nil {
 		return "", "", err
 	}
 

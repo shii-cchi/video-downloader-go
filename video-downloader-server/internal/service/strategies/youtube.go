@@ -31,7 +31,14 @@ func (s YouTubeDownloadStrategy) Download(videoURL string, quality string) (stri
 	if err != nil {
 		return "", "", err
 	}
-	defer s.deleteTmpFiles(videoPath, audioPath)
+
+	defer func() {
+		if derr := s.deleteTmpFiles(videoPath, audioPath); derr != nil {
+			if err == nil {
+				err = derr
+			}
+		}
+	}()
 
 	realPath, err := common.CreateRandomDir(domain.CommonVideoDir)
 	if err != nil {
@@ -43,19 +50,19 @@ func (s YouTubeDownloadStrategy) Download(videoURL string, quality string) (stri
 		return "", "", err
 	}
 
-	return fmt.Sprintf("%s %s", videoName, format.QualityLabel), filepath.Join(realPath, fmt.Sprintf("%s %s%s", videoName, format.QualityLabel, domain.VideoFormat)), nil
+	return fmt.Sprintf("%s %s", videoName, format.QualityLabel), filepath.Join(realPath, fmt.Sprintf("%s %s%s", videoName, format.QualityLabel, domain.VideoFormat)), err
 }
 
 func (s YouTubeDownloadStrategy) getVideoID(videoURL string) (string, error) {
 	parsedURL, err := url.Parse(videoURL)
 	if err != nil {
-		return "", fmt.Errorf(domain.ErrParsingURL+": %w", err)
+		return "", fmt.Errorf("%w (video url: %s): %s", domain.ErrParsingURL, videoURL, err)
 	}
 
 	queryParams := parsedURL.Query()
 	videoID := queryParams.Get("v")
 	if videoID == "" {
-		return "", fmt.Errorf(domain.ErrNotFoundVideoID+": %w", err)
+		return "", fmt.Errorf("%w (video url: %s): %s", domain.ErrNotFoundVideoID, videoURL, err)
 	}
 
 	return videoID, nil
@@ -65,7 +72,7 @@ func (s YouTubeDownloadStrategy) fetchVideoMetadata(videoID string) (*youtube.Vi
 	client := youtube.Client{}
 	video, err := client.GetVideo(videoID)
 	if err != nil {
-		return nil, fmt.Errorf(domain.ErrFetchingMetadata+": %w", err)
+		return nil, fmt.Errorf("%w (video id: %s): %s", domain.ErrFetchingMetadata, videoID, err)
 	}
 
 	return video, nil
@@ -114,7 +121,7 @@ func (s YouTubeDownloadStrategy) downloadStreamToFile(video *youtube.Video, form
 
 	stream, _, err := client.GetStream(video, format)
 	if err != nil {
-		return fmt.Errorf(domain.ErrGettingStream+": %w", err)
+		return fmt.Errorf("%w (for file: %s): %s", domain.ErrGettingStream, fileName, err)
 	}
 	defer stream.Close()
 
@@ -125,15 +132,28 @@ func (s YouTubeDownloadStrategy) downloadStreamToFile(video *youtube.Video, form
 	return nil
 }
 
-func (s YouTubeDownloadStrategy) deleteTmpFiles(videoPath, audioPath string) {
-	os.Remove(videoPath)
-	os.Remove(audioPath)
+func (s YouTubeDownloadStrategy) deleteTmpFiles(videoPath, audioPath string) error {
+	var errMsg string
+
+	if err := os.Remove(videoPath); err != nil {
+		errMsg += fmt.Sprintf("%s - %s", videoPath, err)
+	}
+
+	if err := os.Remove(audioPath); err != nil {
+		errMsg += fmt.Sprintf("%s - %s", audioPath, err)
+	}
+
+	if errMsg != "" {
+		return fmt.Errorf("%w: %s", domain.ErrDeletingTmpFiles, errMsg)
+	}
+
+	return nil
 }
 
 func (s YouTubeDownloadStrategy) mergeVideoAudio(videoFileName string, audioFileName string, mergedFileName string) error {
 	cmd := exec.Command("ffmpeg", "-i", videoFileName, "-i", audioFileName, "-c", "copy", mergedFileName)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(domain.ErrMerging+": %w", err)
+		return fmt.Errorf("%w (to file: %s): %s", domain.ErrMerging, mergedFileName, err)
 	}
 
 	return nil

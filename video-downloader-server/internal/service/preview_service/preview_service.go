@@ -46,7 +46,7 @@ func (p *PreviewService) CreatePreview(videoName string, realPath string) (strin
 func (p *PreviewService) DeletePreviews(paths []string) error {
 	for _, previewPath := range paths {
 		if err := os.Remove(filepath.Join(domain.CommonPreviewDir, previewPath)); err != nil {
-			return fmt.Errorf(domain.ErrDeletingPreview+" %s: %w", previewPath, err)
+			return fmt.Errorf("%w (preview path: %s): %s", domain.ErrDeletingPreview, previewPath, err)
 		}
 	}
 
@@ -57,12 +57,12 @@ func (p *PreviewService) getVideoDuration(videoPath string) (time.Duration, erro
 	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
 	output, err := cmd.Output()
 	if err != nil {
-		return 0, fmt.Errorf(domain.ErrGettingVideoDuration+": %w", err)
+		return 0, fmt.Errorf("%w (video path: %s): %s", domain.ErrGettingVideoDuration, videoPath, err)
 	}
 
 	durationSeconds, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64)
 	if err != nil {
-		return 0, fmt.Errorf(domain.ErrParsingVideoDuration+": %w", err)
+		return 0, fmt.Errorf("%w (video path: %s): %s", domain.ErrParsingVideoDuration, videoPath, err)
 	}
 
 	return time.Duration(durationSeconds) * time.Second, nil
@@ -80,7 +80,7 @@ func (p *PreviewService) generatePreview(videoPath, previewPath, previewTime str
 	cmd := exec.Command("ffmpeg", "-i", videoPath, "-ss", previewTime, "-vframes", "1", previewPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf(domain.ErrGeneratingPreview+":%w\n%s", err, string(output))
+		return fmt.Errorf("%w (ffmpeg output: %s): %s", domain.ErrGeneratingPreview, string(output), err)
 	}
 
 	return nil
